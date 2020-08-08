@@ -1,11 +1,3 @@
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
-#include <optional>
-#include <sstream>
-#include <string>
-#include <vector>
-
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GL/gl.h>
@@ -13,6 +5,15 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
+
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <optional>
+#include <sstream>
+#include <string>
+#include <vector>
+#include "utils/shader.h"
 
 void WindowErrorCallback(int error, const char* desc) {
   std::cerr << "GLFW Error: " << error << ": " << desc << std::endl;
@@ -24,44 +25,6 @@ GLuint gl_vbo;
 
 const glm::vec3 kVertices[] = {{-0.5f, -0.5f, 0.f}, {0.5f, -0.5f, 0.f}, {0.f, 0.5f, 0.f}};
 
-std::optional<std::string> LoadShaderSource(const std::string& path) {
-  std::ifstream file(path, std::ios::in);
-  if (!file.is_open()) {
-    return std::nullopt;
-  }
-
-  std::stringstream sstrm;
-  sstrm << file.rdbuf();
-  std::string src = sstrm.str();
-
-  file.close();
-  return src;
-}
-
-bool CompileShader(GLuint shader, const std::string& shader_src) {
-  const GLchar* sources[] = { shader_src.c_str() };
-  const GLint sources_lengths[] = { static_cast<GLint>(shader_src.length()) };
-  glShaderSource(shader, 1, sources, sources_lengths);
-  glCompileShader(shader);
-
-  // Checks if the shader compilation succeeded.
-  GLint result = GL_FALSE;
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
-
-  if (result == GL_FALSE) {
-    int log_len;
-    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &log_len);
-
-    if (log_len > 0) {
-      std::vector<GLchar> error_log(log_len);
-      glGetShaderInfoLog(shader, log_len, nullptr, &error_log[0]);
-      std::cerr << &error_log[0] << std::endl;
-    }
-    return false;
-  }
-  return true;
-}
-
 void Init() {
   glClearColor(0.f, 0.f, 0.f, 1.f);
 
@@ -72,8 +35,8 @@ void Init() {
   }
 
   GLuint vert_shader = glCreateShader(GL_VERTEX_SHADER);
-  if (auto src_opt = LoadShaderSource("triangle.vert")) {
-    if (!CompileShader(vert_shader, src_opt.value())) {
+  if (auto src_opt = utils::LoadShaderSource("triangle.vert")) {
+    if (!utils::CompileShader(vert_shader, src_opt.value())) {
       std::cerr << "Could not compile vertex shader." << std::endl;
       exit(1);
     }
@@ -83,8 +46,8 @@ void Init() {
   }
 
   GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-  if (auto src_opt = LoadShaderSource("triangle.frag")) {
-    if (!CompileShader(frag_shader, src_opt.value())) {
+  if (auto src_opt = utils::LoadShaderSource("triangle.frag")) {
+    if (!utils::CompileShader(frag_shader, src_opt.value())) {
       std::cerr << "Could not compile fragment shader." << std::endl;
       exit(1);
     }

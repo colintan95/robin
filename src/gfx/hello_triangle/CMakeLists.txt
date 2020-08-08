@@ -5,6 +5,8 @@ target_link_libraries(hello_triangle PRIVATE glfw)
 target_link_libraries(hello_triangle PRIVATE glm)
 target_link_libraries(hello_triangle PRIVATE OpenGL::GL)
 
+target_link_libraries(hello_triangle PRIVATE utils)
+
 #======================================================================
 
 # Makes the src folder an include directory so that we can include any header file by specifying
