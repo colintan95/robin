@@ -1,13 +1,17 @@
 target_sources(utils
   PUBLIC
+    "model.h"
     "shader.h"
     "program.h"
   PRIVATE
+    "model.cpp"
     "shader.cpp"
     "program.cpp")
 
 target_link_libraries(utils PRIVATE glew)
+target_link_libraries(utils PRIVATE glm)
 target_link_libraries(utils PRIVATE OpenGL::GL)
+target_link_libraries(utils PRIVATE tinyobjloader)
 
 #======================================================================
 

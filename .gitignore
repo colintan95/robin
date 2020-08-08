@@ -1,2 +1,5 @@
 build/
 .vscode/
+
+# TODO: Delete this line once the assets/ folder is version controlled (e.g. using lfs)
+assets/

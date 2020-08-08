@@ -32,4 +32,9 @@ set_property(TARGET glew PROPERTY IMPORTED_LOCATION
 set_property(TARGET glew PROPERTY INTERFACE_INCLUDE_DIRECTORIES
     "${CMAKE_SOURCE_DIR}/third_party/glew-2.1.0/include")
 
+# TinyObjLoader
+add_library(tinyobjloader INTERFACE IMPORTED)
+set_property(TARGET tinyobjloader PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+    "${CMAKE_SOURCE_DIR}/third_party/tinyobjloader-2.0.0/include")
+
 add_subdirectory(src)
