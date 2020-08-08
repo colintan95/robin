@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+#include "utils/image.h"
 #include "utils/model.h"
 #include "utils/shader.h"
 #include "utils/program.h"
@@ -24,6 +25,7 @@ GLuint gl_program;
 GLuint gl_vao;
 GLuint gl_vbo;
 std::shared_ptr<utils::Model> model;
+std::shared_ptr<utils::Image> img;
 
 void Initialize() {
   glClearColor(0.f, 0.f, 0.f, 1.f);
@@ -70,14 +72,12 @@ void Initialize() {
   glUseProgram(gl_program);
 
   glm::mat4 model_mat = glm::mat4(1.f);
-  // glm::mat4 view_mat = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -1.5f));
   glm::mat4 view_mat = 
       glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -1.8f)) *
       glm::rotate(glm::mat4(1.f), glm::pi<float>() / 6.f, 
                                    glm::vec3(1.f, 0.f, 0.f)) *
       glm::rotate(glm::mat4(1.f), -glm::pi<float>() / 6.f, 
                                    glm::vec3(0.f, 1.f, 0.f));
-      
   glm::mat4 proj_mat = glm::perspective(
       glm::radians(75.f), 
       static_cast<float>(kWindowWidth) / static_cast<float>(kWindowHeight),
@@ -99,6 +99,12 @@ void Initialize() {
   glBindBuffer(GL_ARRAY_BUFFER, gl_vbo);
   glBufferData(GL_ARRAY_BUFFER, model->positions.size() * 3, glm::value_ptr(model->positions[0]), 
                GL_STATIC_DRAW);
+
+  img = utils::LoadImageFromFile("assets/cube/default.png", true /* flip */);
+  if (img == nullptr) {
+    std::cerr << "Could not load image." << std::endl;
+    exit(1);
+  }
 }
 
 void RenderPass() {
