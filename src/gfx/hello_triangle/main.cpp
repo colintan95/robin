@@ -7,24 +7,19 @@
 #include <GLFW/glfw3.h>
 
 #include <cstdlib>
-#include <fstream>
 #include <iostream>
-#include <optional>
-#include <sstream>
-#include <string>
-#include <vector>
 #include "utils/shader.h"
 #include "utils/program.h"
 
-void WindowErrorCallback(int error, const char* desc) {
-  std::cerr << "GLFW Error: " << error << ": " << desc << std::endl;
-}
+constexpr int kWindowWidth = 1920;
+constexpr int kWindowHeight = 1080;
+const char* kWindowTitle = "Hello Triangle";
+
+const glm::vec3 kVertices[] = {{-0.5f, -0.5f, 0.f}, {0.5f, -0.5f, 0.f}, {0.f, 0.5f, 0.f}};
 
 GLuint gl_program;
 GLuint gl_vao;
 GLuint gl_vbo;
-
-const glm::vec3 kVertices[] = {{-0.5f, -0.5f, 0.f}, {0.5f, -0.5f, 0.f}, {0.f, 0.5f, 0.f}};
 
 void Initialize() {
   glClearColor(0.f, 0.f, 0.f, 1.f);
@@ -59,8 +54,8 @@ void Initialize() {
 
   glAttachShader(gl_program, vert_shader);
   glAttachShader(gl_program, frag_shader);
-  glLinkProgram(gl_program);
 
+  glLinkProgram(gl_program);
   if (!utils::CheckProgramLinkStatus(gl_program)) {
     exit(1);
   }
@@ -76,7 +71,7 @@ void Initialize() {
 }
 
 void RenderPass() {
-  glViewport(0, 0, 1920, 1080);
+  glViewport(0, 0, kWindowWidth, kWindowHeight);
   glClear(GL_COLOR_BUFFER_BIT);
 
   glUseProgram(gl_program);
@@ -95,6 +90,10 @@ void Cleanup() {
   glDeleteProgram(gl_program);
 }
 
+void WindowErrorCallback(int error, const char* desc) {
+  std::cerr << "GLFW Error: " << error << ": " << desc << std::endl;
+}
+
 int main() {
   if (!glfwInit()) {
     std::cerr << "Could not initialize GLFW." << std::endl;
@@ -105,7 +104,8 @@ int main() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   
-  GLFWwindow* glfw_window = glfwCreateWindow(1920, 1080, "Hello, Triangle!", nullptr, nullptr);
+  GLFWwindow* glfw_window = glfwCreateWindow(kWindowWidth, kWindowHeight, kWindowTitle, nullptr, 
+                                             nullptr);
   if (glfw_window == nullptr) {
     std::cerr << "Could not create GLFW window." << std::endl;
     exit(1);
