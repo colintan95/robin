@@ -28,7 +28,7 @@ set_property(TARGET glfw PROPERTY INTERFACE_INCLUDE_DIRECTORIES
 # GLEW
 add_library(glew STATIC IMPORTED)
 set_property(TARGET glew PROPERTY IMPORTED_LOCATION
-    "${CMAKE_SOURCE_DIR}/third_party/glew-2.1.0/lib/Release/x64/glew32.lib")
+    "${CMAKE_SOURCE_DIR}/third_party/glew-2.1.0/lib/Release/x64/glew32s.lib")
 set_property(TARGET glew PROPERTY INTERFACE_INCLUDE_DIRECTORIES
     "${CMAKE_SOURCE_DIR}/third_party/glew-2.1.0/include")
 
