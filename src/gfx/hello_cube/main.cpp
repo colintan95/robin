@@ -20,6 +20,8 @@ constexpr int kWindowWidth = 1920;
 constexpr int kWindowHeight = 1080;
 const char* kWindowTitle = "Hello Cube";
 
+constexpr float kAspectRatio = static_cast<float>(kWindowWidth) / static_cast<float>(kWindowHeight);
+
 const glm::vec3 kVertices[] = {{-0.5f, -0.5f, 0.f}, {0.5f, -0.5f, 0.f}, {0.f, 0.5f, 0.f}};
 
 GLuint gl_program;
@@ -84,10 +86,7 @@ void Initialize() {
                                    glm::vec3(1.f, 0.f, 0.f)) *
       glm::rotate(glm::mat4(1.f), -glm::pi<float>() / 6.f, 
                                    glm::vec3(0.f, 1.f, 0.f));
-  glm::mat4 proj_mat = glm::perspective(
-      glm::radians(75.f), 
-      static_cast<float>(kWindowWidth) / static_cast<float>(kWindowHeight),
-      0.1f, 1000.f);
+  glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);
   glm::mat4 mvp_mat = proj_mat * view_mat * model_mat;
 
   GLint mvp_mat_loc = glGetUniformLocation(gl_program, "mvp_mat");
