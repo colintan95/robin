@@ -12,8 +12,9 @@ uniform mat4 mvp_mat;
 uniform mat3 normal_mat;
 
 void main() {
+  frag_pos = (model_mat * vec4(vert_pos, 1.0)).xyz;
   frag_normal = normal_mat * vert_normal;
   frag_texcoord = vert_texcoord;
-  frag_pos = (model_mat * vec4(vert_pos, 1.0)).xyz;
+  
   gl_Position = mvp_mat * vec4(vert_pos, 1.0);
 }

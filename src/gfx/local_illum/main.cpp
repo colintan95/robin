@@ -93,8 +93,7 @@ void Initialize() {
       glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -6.5f));
   glm::mat4 view_mat = glm::lookAt(camera_pos, glm::vec3(0.f, 0.f, 0.f),
                                    glm::vec3(0.f, 1.f, 0.f));
-  glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 
-                                1000.f);
+  glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);
   glm::mat4 mv_mat = view_mat * model_mat;
   glm::mat4 mvp_mat = proj_mat * mv_mat;
 
