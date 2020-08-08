@@ -8,14 +8,14 @@
 
 namespace utils {
 
-enum ImageFormat {
-  kImageFormatInvalid,
-  kImageFormatRGB,
-  kImageFormatRGBA
+enum class ImageFormat {
+  kInvalid = -1,
+  kRGB = 0,
+  kRGBA
 };
 
 struct Image {
-  ImageFormat format = kImageFormatInvalid;
+  ImageFormat format = ImageFormat::kInvalid;
 
   uint32_t width = 0;
   uint32_t height = 0;

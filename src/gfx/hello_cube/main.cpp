@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
 
+#include <cassert>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -23,11 +24,16 @@ const glm::vec3 kVertices[] = {{-0.5f, -0.5f, 0.f}, {0.5f, -0.5f, 0.f}, {0.f, 0.
 
 GLuint gl_program;
 GLuint gl_vao;
-GLuint gl_vbo;
+GLuint gl_pos_vbo;
+GLuint gl_normal_vbo;
+GLuint gl_texcoord_vbo;
+GLuint gl_texture;
 std::shared_ptr<utils::Model> model;
 std::shared_ptr<utils::Image> img;
 
 void Initialize() {
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_DEPTH_TEST);
   glClearColor(0.f, 0.f, 0.f, 1.f);
 
   gl_program = glCreateProgram();
@@ -87,6 +93,24 @@ void Initialize() {
   GLint mvp_mat_loc = glGetUniformLocation(gl_program, "mvp_mat");
   glUniformMatrix4fv(mvp_mat_loc, 1, GL_FALSE, glm::value_ptr(mvp_mat));
 
+   img = utils::LoadImageFromFile("assets/cube/default.png", true /* flip */);
+  if (img == nullptr) {
+    std::cerr << "Could not load image." << std::endl;
+    exit(1);
+  }
+  assert(img->format == utils::ImageFormat::kRGB);
+
+  glGenTextures(1, &gl_texture);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, gl_texture);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img->width, img->height, 0, GL_RGB, GL_UNSIGNED_BYTE, 
+               img->data.data());
+
+  GLint sampler_loc = glGetUniformLocation(gl_program, "tex_sampler");
+  glUniform1i(sampler_loc, 1);
+
   glGenVertexArrays(1, &gl_vao);
 
   model = utils::LoadModelFromFile("assets/cube/cube.obj", "assets/cube");
@@ -95,34 +119,49 @@ void Initialize() {
     exit(1);
   }
 
-  glGenBuffers(1, &gl_vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, gl_vbo);
+  glGenBuffers(1, &gl_pos_vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbo);
   glBufferData(GL_ARRAY_BUFFER, model->positions.size() * 3, glm::value_ptr(model->positions[0]), 
                GL_STATIC_DRAW);
 
-  img = utils::LoadImageFromFile("assets/cube/default.png", true /* flip */);
-  if (img == nullptr) {
-    std::cerr << "Could not load image." << std::endl;
-    exit(1);
-  }
+  glGenBuffers(1, &gl_normal_vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, gl_normal_vbo);
+  glBufferData(GL_ARRAY_BUFFER, model->normals.size() * 3, glm::value_ptr(model->normals[0]), 
+               GL_STATIC_DRAW);
+
+  glGenBuffers(1, &gl_texcoord_vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, gl_texcoord_vbo);
+  glBufferData(GL_ARRAY_BUFFER, model->texcoords.size() * 2, glm::value_ptr(model->texcoords[0]), 
+               GL_STATIC_DRAW);
 }
 
 void RenderPass() {
   glViewport(0, 0, kWindowWidth, kWindowHeight);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   glUseProgram(gl_program);
   glBindVertexArray(gl_vao);
 
-  glBindBuffer(GL_ARRAY_BUFFER, gl_vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbo);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, gl_normal_vbo);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+  glBindBuffer(GL_ARRAY_BUFFER, gl_texcoord_vbo);
+  glEnableVertexAttribArray(2);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
   glDrawArrays(GL_TRIANGLES, 0, model->num_verts);
 }
 
 void Cleanup() {
-  glDeleteBuffers(1, &gl_vbo);
+  glDeleteBuffers(1, &gl_texcoord_vbo);
+  glDeleteBuffers(1, &gl_normal_vbo);
+  glDeleteBuffers(1, &gl_pos_vbo);
+  glDeleteTextures(1, &gl_texture);
   glDeleteVertexArrays(1, &gl_vao);
   glDeleteProgram(gl_program);
 }

@@ -26,10 +26,10 @@ std::shared_ptr<Image> LoadImageFromFile(const std::string& path, bool flip) {
 
   switch (load_channels) {
     case 3:
-      img->format = kImageFormatRGB;
+      img->format = ImageFormat::kRGB;
       break;
     case 4:
-      img->format = kImageFormatRGBA;
+      img->format = ImageFormat::kRGBA;
       break;
     default:
       return nullptr;
