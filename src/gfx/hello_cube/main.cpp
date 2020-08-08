@@ -22,8 +22,6 @@ const char* kWindowTitle = "Hello Cube";
 
 constexpr float kAspectRatio = static_cast<float>(kWindowWidth) / static_cast<float>(kWindowHeight);
 
-const glm::vec3 kVertices[] = {{-0.5f, -0.5f, 0.f}, {0.5f, -0.5f, 0.f}, {0.f, 0.5f, 0.f}};
-
 GLuint gl_program;
 GLuint gl_vao;
 GLuint gl_pos_vbo;
@@ -77,16 +75,17 @@ void Initialize() {
   glDeleteShader(frag_shader);
   glDeleteShader(vert_shader);
 
+  glGenVertexArrays(1, &gl_vao);
+
   glUseProgram(gl_program);
 
   glm::mat4 model_mat = glm::mat4(1.f);
   glm::mat4 view_mat = 
       glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -1.8f)) *
-      glm::rotate(glm::mat4(1.f), glm::pi<float>() / 6.f, 
-                                   glm::vec3(1.f, 0.f, 0.f)) *
-      glm::rotate(glm::mat4(1.f), -glm::pi<float>() / 6.f, 
-                                   glm::vec3(0.f, 1.f, 0.f));
-  glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);
+      glm::rotate(glm::mat4(1.f), glm::pi<float>() / 6.f, glm::vec3(1.f, 0.f, 0.f)) *
+      glm::rotate(glm::mat4(1.f), -glm::pi<float>() / 6.f, glm::vec3(0.f, 1.f, 0.f));
+  glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 
+                                1000.f);
   glm::mat4 mvp_mat = proj_mat * view_mat * model_mat;
 
   GLint mvp_mat_loc = glGetUniformLocation(gl_program, "mvp_mat");
@@ -109,8 +108,6 @@ void Initialize() {
 
   GLint sampler_loc = glGetUniformLocation(gl_program, "tex_sampler");
   glUniform1i(sampler_loc, 1);
-
-  glGenVertexArrays(1, &gl_vao);
 
   model = utils::LoadModelFromFile("assets/cube/cube.obj", "assets/cube");
   if (model == nullptr) {
