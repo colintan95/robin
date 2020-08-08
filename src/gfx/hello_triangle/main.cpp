@@ -1,6 +1,9 @@
 #include <iostream>
 #include <cstdlib>
 
+#include <GL/glew.h>
+#include <GL/gl.h>
+
 #include <GLFW/glfw3.h>
 
 void WindowErrorCallback(int error, const char* desc) {
