@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
@@ -34,7 +35,7 @@ void Initialize() {
   }
 
   GLuint vert_shader = glCreateShader(GL_VERTEX_SHADER);
-  if (auto src_opt = utils::LoadShaderSource("triangle.vert")) {
+  if (auto src_opt = utils::LoadShaderSource("model.vert")) {
     if (!utils::CompileShader(vert_shader, src_opt.value())) {
       std::cerr << "Could not compile vertex shader." << std::endl;
       exit(1);
@@ -45,7 +46,7 @@ void Initialize() {
   }
 
   GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-  if (auto src_opt = utils::LoadShaderSource("triangle.frag")) {
+  if (auto src_opt = utils::LoadShaderSource("model.frag")) {
     if (!utils::CompileShader(frag_shader, src_opt.value())) {
       std::cerr << "Could not compile fragment shader." << std::endl;
       exit(1);
@@ -65,6 +66,26 @@ void Initialize() {
   
   glDeleteShader(frag_shader);
   glDeleteShader(vert_shader);
+
+  glUseProgram(gl_program);
+
+  glm::mat4 model_mat = glm::mat4(1.f);
+  // glm::mat4 view_mat = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -1.5f));
+  glm::mat4 view_mat = 
+      glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -1.8f)) *
+      glm::rotate(glm::mat4(1.f), glm::pi<float>() / 6.f, 
+                                   glm::vec3(1.f, 0.f, 0.f)) *
+      glm::rotate(glm::mat4(1.f), -glm::pi<float>() / 6.f, 
+                                   glm::vec3(0.f, 1.f, 0.f));
+      
+  glm::mat4 proj_mat = glm::perspective(
+      glm::radians(75.f), 
+      static_cast<float>(kWindowWidth) / static_cast<float>(kWindowHeight),
+      0.1f, 1000.f);
+  glm::mat4 mvp_mat = proj_mat * view_mat * model_mat;
+
+  GLint mvp_mat_loc = glGetUniformLocation(gl_program, "mvp_mat");
+  glUniformMatrix4fv(mvp_mat_loc, 1, GL_FALSE, glm::value_ptr(mvp_mat));
 
   glGenVertexArrays(1, &gl_vao);
 
