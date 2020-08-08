@@ -11,8 +11,9 @@ function(add_shaders TARGET SHADER_SRC_FILES)
         COMMENT "Copying ${file} to executable folder: ${dst}")
   endforeach(file)
   
-  add_custom_target(shaders ALL DEPENDS ${SHADER_SRC_FILES})
-  add_dependencies("${TARGET}" shaders)
+  add_custom_target("${TARGET}_shaders" ALL DEPENDS ${SHADER_SRC_FILES})
+  add_dependencies("${TARGET}" "${TARGET}_shaders")
 endfunction()
 
+add_subdirectory(hello_cube) 
 add_subdirectory(hello_triangle) 
