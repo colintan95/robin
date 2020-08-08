@@ -91,7 +91,7 @@ void Initialize() {
   GLint mvp_mat_loc = glGetUniformLocation(gl_program, "mvp_mat");
   glUniformMatrix4fv(mvp_mat_loc, 1, GL_FALSE, glm::value_ptr(mvp_mat));
 
-   img = utils::LoadImageFromFile("assets/cube/default.png", true /* flip */);
+  img = utils::LoadImageFromFile("assets/cube/default.png", true /* flip */);
   if (img == nullptr) {
     std::cerr << "Could not load image." << std::endl;
     exit(1);

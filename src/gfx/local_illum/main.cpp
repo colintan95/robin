@@ -43,7 +43,7 @@ void Initialize() {
   }
 
   GLuint vert_shader = glCreateShader(GL_VERTEX_SHADER);
-  if (auto src_opt = utils::LoadShaderSource("model.vert")) {
+  if (auto src_opt = utils::LoadShaderSource("local_illum.vert")) {
     if (!utils::CompileShader(vert_shader, src_opt.value())) {
       std::cerr << "Could not compile vertex shader." << std::endl;
       exit(1);
@@ -54,7 +54,7 @@ void Initialize() {
   }
 
   GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-  if (auto src_opt = utils::LoadShaderSource("model.frag")) {
+  if (auto src_opt = utils::LoadShaderSource("local_illum.frag")) {
     if (!utils::CompileShader(frag_shader, src_opt.value())) {
       std::cerr << "Could not compile fragment shader." << std::endl;
       exit(1);
@@ -87,12 +87,29 @@ void Initialize() {
                                    glm::vec3(0.f, 1.f, 0.f));
   glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 
                                 1000.f);
-  glm::mat4 mvp_mat = proj_mat * view_mat * model_mat;
 
+  glm::mat4 mv_mat = view_mat * model_mat;
+  GLint mv_mat_loc = glGetUniformLocation(gl_program, "mv_mat");
+  glUniformMatrix4fv(mv_mat_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
+    
+  glm::mat4 mvp_mat = proj_mat * mv_mat;
   GLint mvp_mat_loc = glGetUniformLocation(gl_program, "mvp_mat");
   glUniformMatrix4fv(mvp_mat_loc, 1, GL_FALSE, glm::value_ptr(mvp_mat));
 
-   img = utils::LoadImageFromFile("assets/teapot/texture.jpg", true /* flip */);
+  glm::mat3 normal_mat = glm::transpose(glm::inverse(glm::mat3(mv_mat)));
+  GLint normal_mat_loc = glGetUniformLocation(gl_program, "normal_mat");
+  glUniformMatrix3fv(normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat)); 
+
+  GLint ambient_loc = glGetUniformLocation(gl_program, "ambient_I");
+  glUniform3f(ambient_loc, 0.3f, 0.3f, 0.3f);
+
+  GLint diffuse_loc = glGetUniformLocation(gl_program, "diffuse_I");
+  glUniform3f(diffuse_loc, 0.3f, 0.3f, 0.3f);
+
+  GLint light_pos_loc = glGetUniformLocation(gl_program, "light_pos");
+  glUniform3f(light_pos_loc, 10.f, 20.f, 0.f);
+
+  img = utils::LoadImageFromFile("assets/teapot/texture.jpg", true /* flip */);
   if (img == nullptr) {
     std::cerr << "Could not load image." << std::endl;
     exit(1);
