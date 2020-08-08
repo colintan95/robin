@@ -5,15 +5,25 @@ in vec3 frag_normal;
 in vec2 frag_texcoord;
 out vec4 out_color;
 
+uniform vec3 light_pos;
+uniform vec3 camera_pos;
 uniform vec3 ambient_I;
 uniform vec3 diffuse_I;
 uniform vec3 specular_I;
-uniform vec3 light_pos;
+uniform float shininess;
 uniform sampler2D tex_sampler;
 
 void main() {
-  vec3 light_vec = light_pos - frag_pos;
-  vec3 diffuse = clamp(dot(light_vec, frag_normal), 0.0, 1.0) * diffuse_I;
-  vec3 intensity = ambient_I + diffuse;
+  vec3 light_v = normalize(light_pos - frag_pos);
+  vec3 view_v = normalize(camera_pos - frag_pos);
+
+  vec3 half_v = (light_v + view_v) / 2.0;
+  vec3 normal_v = normalize(frag_normal);
+
+  vec3 ambient = ambient_I;
+  vec3 diffuse = diffuse_I * clamp(dot(light_v, normal_v), 0.0, 1.0);
+  vec3 specular = specular_I * pow(clamp(dot(half_v, normal_v), 0.0, 1.0), shininess);
+
+  vec3 intensity = ambient + diffuse + specular;
   out_color = vec4(intensity, 1.0) * texture(tex_sampler, frag_texcoord);
 }

@@ -79,20 +79,28 @@ void Initialize() {
 
   glUseProgram(gl_program);
 
+  glm::vec3 camera_pos = glm::vec3(0.f, 15.f, 22.f);
+  glm::vec3 light_pos = glm::vec3(0.f, 15.f, 10.f);
+
+  glm::vec3 ambient_I = glm::vec3(0.3f, 0.3f, 0.3f);
+  glm::vec3 diffuse_I = glm::vec3(0.3f, 0.3f, 0.3f);
+  glm::vec3 specular_I = glm::vec3(1.f, 1.f, 1.f);
+  float shininess = 10.f;
+
   // Translates the model first so that its origin is near its center rather than its base.
   glm::mat4 model_mat = 
       glm::rotate(glm::mat4(1.f), -(glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f)) *
       glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -6.5f));
-  glm::mat4 view_mat = glm::lookAt(glm::vec3(0.f, 15.f, 22.f), glm::vec3(0.f, 0.f, 0.f),
+  glm::mat4 view_mat = glm::lookAt(camera_pos, glm::vec3(0.f, 0.f, 0.f),
                                    glm::vec3(0.f, 1.f, 0.f));
   glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 
                                 1000.f);
-
   glm::mat4 mv_mat = view_mat * model_mat;
-  GLint mv_mat_loc = glGetUniformLocation(gl_program, "mv_mat");
-  glUniformMatrix4fv(mv_mat_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
-    
   glm::mat4 mvp_mat = proj_mat * mv_mat;
+
+  GLint model_mat_loc = glGetUniformLocation(gl_program, "model_mat");
+  glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
+    
   GLint mvp_mat_loc = glGetUniformLocation(gl_program, "mvp_mat");
   glUniformMatrix4fv(mvp_mat_loc, 1, GL_FALSE, glm::value_ptr(mvp_mat));
 
@@ -101,13 +109,22 @@ void Initialize() {
   glUniformMatrix3fv(normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat)); 
 
   GLint ambient_loc = glGetUniformLocation(gl_program, "ambient_I");
-  glUniform3f(ambient_loc, 0.3f, 0.3f, 0.3f);
+  glUniform3fv(ambient_loc, 1, glm::value_ptr(ambient_I));
 
   GLint diffuse_loc = glGetUniformLocation(gl_program, "diffuse_I");
-  glUniform3f(diffuse_loc, 0.3f, 0.3f, 0.3f);
+  glUniform3fv(diffuse_loc, 1, glm::value_ptr(diffuse_I));
+
+  GLint specular_loc = glGetUniformLocation(gl_program, "specular_I");
+  glUniform3fv(specular_loc, 1, glm::value_ptr(specular_I));
+
+  GLint shininess_loc = glGetUniformLocation(gl_program, "shininess");
+  glUniform1f(shininess_loc, shininess);
 
   GLint light_pos_loc = glGetUniformLocation(gl_program, "light_pos");
-  glUniform3f(light_pos_loc, 10.f, 20.f, 0.f);
+  glUniform3fv(light_pos_loc, 1, glm::value_ptr(light_pos));
+
+  GLint camera_pos_loc = glGetUniformLocation(gl_program, "camera_pos");
+  glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera_pos));
 
   img = utils::LoadImageFromFile("assets/teapot/texture.jpg", true /* flip */);
   if (img == nullptr) {
