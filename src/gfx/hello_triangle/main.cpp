@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 #include "utils/shader.h"
+#include "utils/program.h"
 
 void WindowErrorCallback(int error, const char* desc) {
   std::cerr << "GLFW Error: " << error << ": " << desc << std::endl;
@@ -25,7 +26,7 @@ GLuint gl_vbo;
 
 const glm::vec3 kVertices[] = {{-0.5f, -0.5f, 0.f}, {0.5f, -0.5f, 0.f}, {0.f, 0.5f, 0.f}};
 
-void Init() {
+void Initialize() {
   glClearColor(0.f, 0.f, 0.f, 1.f);
 
   gl_program = glCreateProgram();
@@ -60,18 +61,7 @@ void Init() {
   glAttachShader(gl_program, frag_shader);
   glLinkProgram(gl_program);
 
-  // Checks that the program was linked successfully.
-  GLint result = GL_FALSE;
-  glGetProgramiv(gl_program, GL_LINK_STATUS, &result);
-  if (result == GL_FALSE) {
-    int log_len;
-    glGetProgramiv(gl_program, GL_INFO_LOG_LENGTH, &log_len);
-
-    if (log_len > 0) {
-      std::vector<GLchar> error_log(log_len);
-      glGetProgramInfoLog(gl_program, log_len, nullptr, &error_log[0]);
-      std::cerr << &error_log[0] << std::endl;
-    }
+  if (!utils::CheckProgramLinkStatus(gl_program)) {
     exit(1);
   }
   
@@ -129,7 +119,7 @@ int main() {
     exit(1);
   }
 
-  Init();
+  Initialize();
 
   while (!glfwWindowShouldClose(glfw_window)) {
     glfwPollEvents();

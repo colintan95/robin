@@ -1,8 +1,10 @@
 target_sources(utils
   PUBLIC
     "shader.h"
+    "program.h"
   PRIVATE
-    "shader.cpp")
+    "shader.cpp"
+    "program.cpp")
 
 target_link_libraries(utils PRIVATE glew)
 target_link_libraries(utils PRIVATE OpenGL::GL)
