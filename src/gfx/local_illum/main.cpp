@@ -80,8 +80,8 @@ void Initialize() {
   glUseProgram(gl_program);
 
   glm::vec3 camera_pos = glm::vec3(0.f, 15.f, 22.f);
-  glm::vec3 light_pos = glm::vec3(0.f, 15.f, 10.f);
 
+  glm::vec3 light_pos = glm::vec3(0.f, 15.f, 10.f);
   glm::vec3 ambient_I = glm::vec3(0.3f, 0.3f, 0.3f);
   glm::vec3 diffuse_I = glm::vec3(0.3f, 0.3f, 0.3f);
   glm::vec3 specular_I = glm::vec3(1.f, 1.f, 1.f);
@@ -108,6 +108,12 @@ void Initialize() {
   GLint normal_mat_loc = glGetUniformLocation(gl_program, "normal_mat");
   glUniformMatrix3fv(normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat)); 
 
+  GLint camera_pos_loc = glGetUniformLocation(gl_program, "camera_pos");
+  glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera_pos));
+
+  GLint light_pos_loc = glGetUniformLocation(gl_program, "light_pos");
+  glUniform3fv(light_pos_loc, 1, glm::value_ptr(light_pos));
+
   GLint ambient_loc = glGetUniformLocation(gl_program, "ambient_I");
   glUniform3fv(ambient_loc, 1, glm::value_ptr(ambient_I));
 
@@ -119,14 +125,8 @@ void Initialize() {
 
   GLint shininess_loc = glGetUniformLocation(gl_program, "shininess");
   glUniform1f(shininess_loc, shininess);
-
-  GLint light_pos_loc = glGetUniformLocation(gl_program, "light_pos");
-  glUniform3fv(light_pos_loc, 1, glm::value_ptr(light_pos));
-
-  GLint camera_pos_loc = glGetUniformLocation(gl_program, "camera_pos");
-  glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera_pos));
-
-  img = utils::LoadImageFromFile("assets/teapot/texture.jpg", true /* flip */);
+  
+  img = utils::LoadImageFromFile("assets/teapot/texture.jpg", false /* flip */);
   if (img == nullptr) {
     std::cerr << "Could not load image." << std::endl;
     exit(1);

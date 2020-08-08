@@ -1,6 +1,8 @@
-build/
 .vs/
 .vscode/
+
+build/
+out/
 
 # TODO: Delete this line once the assets/ folder is version controlled (e.g. using lfs)
 assets/

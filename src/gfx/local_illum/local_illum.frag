@@ -5,12 +5,14 @@ in vec3 frag_normal;
 in vec2 frag_texcoord;
 out vec4 out_color;
 
-uniform vec3 light_pos;
 uniform vec3 camera_pos;
+
+uniform vec3 light_pos;
 uniform vec3 ambient_I;
 uniform vec3 diffuse_I;
 uniform vec3 specular_I;
 uniform float shininess;
+
 uniform sampler2D tex_sampler;
 
 void main() {
