@@ -18,7 +18,9 @@ target_include_directories(global_illum PRIVATE ${SRC_INCLUDE_DIR})
 
 set(SHADER_SRC_FILES 
     "geom_pass.frag"
-    "geom_pass.vert")
+    "geom_pass.vert"
+    "light_pass.frag"
+    "light_pass.vert")
 add_shaders(global_illum "${SHADER_SRC_FILES}")
 
 # In the executable folder, creates a symlink to the assets folder.

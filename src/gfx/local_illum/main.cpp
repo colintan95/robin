@@ -35,7 +35,7 @@ std::shared_ptr<utils::Model> model;
 std::shared_ptr<utils::Image> img;
 
 glm::mat4 view_mat;
-glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);;
+glm::mat4 proj_mat;
 
 void Initialize() {
   glEnable(GL_TEXTURE_2D);
@@ -84,6 +84,8 @@ void Initialize() {
   glGenVertexArrays(1, &gl_vao);
 
   glUseProgram(gl_program);
+
+  proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);
 
   glm::vec3 light_pos = glm::vec3(0.f, 20.f, -22.f);
   glm::vec3 ambient_I = glm::vec3(0.3f, 0.3f, 0.3f);
