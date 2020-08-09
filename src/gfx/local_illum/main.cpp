@@ -23,7 +23,6 @@ const char* kWindowTitle = "Local Illum";
 
 constexpr float kAspectRatio = static_cast<float>(kWindowWidth) / static_cast<float>(kWindowHeight);
 
-GLFWwindow* glfw_window;
 std::unique_ptr<utils::Camera> camera;
 
 GLuint gl_program;
@@ -37,11 +36,8 @@ std::shared_ptr<utils::Image> img;
 
 glm::mat4 view_mat;
 glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);;
-glm::vec3 camera_pos = glm::vec3(0.f, 15.f, 22.f);
 
 void Initialize() {
-  camera = std::make_unique<utils::Camera>(glfw_window);
-
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
   glClearColor(0.f, 0.f, 0.f, 1.f);
@@ -95,10 +91,7 @@ void Initialize() {
   glm::vec3 specular_I = glm::vec3(1.f, 1.f, 1.f);
   float shininess = 10.f;
 
-  camera->LookAt(camera_pos, glm::vec3(0.f, 0.f, 0.f));
-
-  GLint camera_pos_loc = glGetUniformLocation(gl_program, "camera_pos");
-  glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera_pos));
+  camera->SetCameraPos(glm::vec3(0.f, 15.f, 22.f));
 
   GLint light_pos_loc = glGetUniformLocation(gl_program, "light_pos");
   glUniform3fv(light_pos_loc, 1, glm::value_ptr(light_pos));
@@ -182,6 +175,9 @@ void RenderPass() {
   GLint normal_mat_loc = glGetUniformLocation(gl_program, "normal_mat");
   glUniformMatrix3fv(normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat)); 
 
+  GLint camera_pos_loc = glGetUniformLocation(gl_program, "camera_pos");
+  glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera->GetCameraPos()));
+
   glBindVertexArray(gl_vao);
 
   glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbo);
@@ -206,8 +202,6 @@ void Cleanup() {
   glDeleteTextures(1, &gl_texture);
   glDeleteVertexArrays(1, &gl_vao);
   glDeleteProgram(gl_program);
-
-  camera.reset();
 }
 
 void WindowErrorCallback(int error, const char* desc) {
@@ -224,7 +218,7 @@ int main() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   
-  glfw_window = glfwCreateWindow(kWindowWidth, kWindowHeight, kWindowTitle, nullptr, 
+  GLFWwindow* glfw_window = glfwCreateWindow(kWindowWidth, kWindowHeight, kWindowTitle, nullptr, 
                                              nullptr);
   if (glfw_window == nullptr) {
     std::cerr << "Could not create GLFW window." << std::endl;
@@ -239,15 +233,22 @@ int main() {
     exit(1);
   }
 
+  camera = std::make_unique<utils::Camera>(glfw_window);
+
   Initialize();
 
   while (!glfwWindowShouldClose(glfw_window)) {
     glfwPollEvents();
+    camera->Tick();
+
     RenderPass();
+
     glfwSwapBuffers(glfw_window);
   }
 
   Cleanup();
+
+  camera.reset();
 
   if (glfw_window != nullptr) {
     glfwDestroyWindow(glfw_window);
