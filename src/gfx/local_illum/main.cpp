@@ -85,13 +85,13 @@ void Initialize() {
 
   glUseProgram(gl_program);
 
-  glm::vec3 light_pos = glm::vec3(0.f, 15.f, 10.f);
+  glm::vec3 light_pos = glm::vec3(0.f, 20.f, -22.f);
   glm::vec3 ambient_I = glm::vec3(0.3f, 0.3f, 0.3f);
-  glm::vec3 diffuse_I = glm::vec3(0.3f, 0.3f, 0.3f);
+  glm::vec3 diffuse_I = glm::vec3(1.f, 1.f, 1.f);
   glm::vec3 specular_I = glm::vec3(1.f, 1.f, 1.f);
-  float shininess = 10.f;
+  float shininess = 5.f;
 
-  camera->SetCameraPos(glm::vec3(0.f, 15.f, 22.f));
+  camera->SetCameraPos(glm::vec3(0.f, 20.f, 22.f));
 
   GLint light_pos_loc = glGetUniformLocation(gl_program, "light_pos");
   glUniform3fv(light_pos_loc, 1, glm::value_ptr(light_pos));
@@ -156,10 +156,8 @@ void RenderPass() {
 
   glUseProgram(gl_program);
 
-  // Translates the model first so that its origin is near its center rather than its base.
   glm::mat4 model_mat = 
-      glm::rotate(glm::mat4(1.f), -(glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f)) *
-      glm::translate(glm::mat4(1.f), glm::vec3(0.f, 0.f, -6.5f));
+      glm::rotate(glm::mat4(1.f), -(glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
   view_mat = camera->GetViewMatrix();
 
   glm::mat4 mv_mat = view_mat * model_mat;

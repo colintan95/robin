@@ -19,7 +19,7 @@ void main() {
   vec3 light_v = normalize(light_pos - frag_pos);
   vec3 view_v = normalize(camera_pos - frag_pos);
 
-  vec3 half_v = (light_v + view_v) / 2.0;
+  vec3 half_v = normalize((light_v + view_v) / 2.0);
   vec3 normal_v = normalize(frag_normal);
 
   vec3 ambient = ambient_I;
