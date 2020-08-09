@@ -25,8 +25,14 @@ const char* kWindowTitle = "Global Illum";
 
 constexpr float kAspectRatio = static_cast<float>(kWindowWidth) / static_cast<float>(kWindowHeight);
 
-GLuint gl_program;
-GLuint gl_vao;
+GLuint gl_geom_pass_program;
+GLuint gl_geom_pass_vao;
+
+GLuint gl_gbuf_fbo;
+GLuint gl_gbuf_pos_tex;
+GLuint gl_gbuf_normal_tex;
+GLuint gl_gbuf_ambient_tex;
+GLuint gl_gbuf_depth_rbo;
 
 std::shared_ptr<utils::Model> model;
 std::vector<GLuint> gl_pos_vbos;
@@ -43,9 +49,9 @@ void Initialize() {
   glEnable(GL_DEPTH_TEST);
   glClearColor(0.f, 0.f, 0.f, 1.f);
 
-  gl_program = glCreateProgram();
-  if (!gl_program) {
-    std::cerr << "Could not create gl_program." << std::endl;
+  gl_geom_pass_program = glCreateProgram();
+  if (!gl_geom_pass_program) {
+    std::cerr << "Could not create gl_geom_pass_program." << std::endl;
     exit(1);
   }
 
@@ -71,29 +77,78 @@ void Initialize() {
     exit(1);
   }
 
-  glAttachShader(gl_program, vert_shader);
-  glAttachShader(gl_program, frag_shader);
+  glAttachShader(gl_geom_pass_program, vert_shader);
+  glAttachShader(gl_geom_pass_program, frag_shader);
 
-  glLinkProgram(gl_program);
-  if (!utils::CheckProgramLinkStatus(gl_program)) {
+  glLinkProgram(gl_geom_pass_program);
+  if (!utils::CheckProgramLinkStatus(gl_geom_pass_program)) {
     exit(1);
   }
   
   glDeleteShader(frag_shader);
   glDeleteShader(vert_shader);
 
-  glGenVertexArrays(1, &gl_vao);
+  glGenVertexArrays(1, &gl_geom_pass_vao);
 
-  glUseProgram(gl_program);
+  glGenFramebuffers(1, &gl_gbuf_fbo);
+  glBindFramebuffer(GL_FRAMEBUFFER, gl_gbuf_fbo);
+
+  glGenTextures(1, &gl_gbuf_pos_tex);
+  glBindTexture(GL_TEXTURE_2D, gl_gbuf_pos_tex);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, kWindowWidth, kWindowHeight, 0, GL_RGB, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gl_gbuf_pos_tex, 0);
+
+  glGenTextures(1, &gl_gbuf_normal_tex);
+  glBindTexture(GL_TEXTURE_2D, gl_gbuf_normal_tex);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, kWindowWidth, kWindowHeight, 0, GL_RGB, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gl_gbuf_normal_tex, 
+                         0);
+
+  glGenTextures(1, &gl_gbuf_ambient_tex);
+  glBindTexture(GL_TEXTURE_2D, gl_gbuf_ambient_tex);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, kWindowWidth, kWindowHeight, 0, GL_RGB, GL_FLOAT, NULL);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gl_gbuf_ambient_tex, 
+                         0);
+
+  GLuint gbuf_attachments[] = { 
+    GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2
+  };
+  glDrawBuffers(3, gbuf_attachments);
+
+  glGenRenderbuffers(1, &gl_gbuf_depth_rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, gl_gbuf_depth_rbo);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, kWindowWidth, kWindowHeight);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
+                            gl_gbuf_depth_rbo);
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    std::cerr << "Could not create framebuffer." << std::endl;
+    exit(1);
+  }
+
+  glUseProgram(gl_geom_pass_program);
 
   // Translates the model first so that its origin is near its center rather than its base.
   glm::mat4 model_mat = glm::mat4(1.f);
   glm::mat4 view_mat = glm::mat4(1.f);
   glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);
+  glm::mat4 mv_mat = view_mat * model_mat;
   glm::mat4 mvp_mat = proj_mat * view_mat * model_mat;
+
+  GLint mv_mat_loc = glGetUniformLocation(gl_geom_pass_program, "mv_mat");
+  glUniformMatrix4fv(mv_mat_loc, 1, GL_FALSE, glm::value_ptr(mv_mat));
     
-  GLint mvp_mat_loc = glGetUniformLocation(gl_program, "mvp_mat");
+  GLint mvp_mat_loc = glGetUniformLocation(gl_geom_pass_program, "mvp_mat");
   glUniformMatrix4fv(mvp_mat_loc, 1, GL_FALSE, glm::value_ptr(mvp_mat));
+
+  glm::mat3 normal_mat = glm::transpose(glm::inverse(glm::mat3(mv_mat)));
+  GLint normal_mat_loc = glGetUniformLocation(gl_geom_pass_program, "normal_mat");
+  glUniformMatrix3fv(normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat)); 
 
   model = utils::LoadModelFromFile("assets/sponza/sponza.obj", "assets/sponza");
   if (model == nullptr) {
@@ -165,20 +220,22 @@ void Initialize() {
 }
 
 void RenderPass() {
+  glBindFramebuffer(GL_FRAMEBUFFER, gl_gbuf_fbo);
+
   glViewport(0, 0, kWindowWidth, kWindowHeight);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glUseProgram(gl_program);
-  glBindVertexArray(gl_vao);
+  glUseProgram(gl_geom_pass_program);
+  glBindVertexArray(gl_geom_pass_vao);
 
   for (size_t i = 0; i < model->meshes.size(); ++i) {
     const utils::Mesh& mesh = model->meshes[i];
     const utils::Material& mtl = mesh.materials[0];
 
-    GLuint ambient_color_loc = glGetUniformLocation(gl_program, "mtls[0].Ka");
+    GLuint ambient_color_loc = glGetUniformLocation(gl_geom_pass_program, "mtls[0].Ka");
     glUniform3fv(ambient_color_loc, 1, glm::value_ptr(mtl.ambient_color));
 
-    GLuint ambient_tex_loc = glGetUniformLocation(gl_program, "mtls[0].tex_a");
+    GLuint ambient_tex_loc = glGetUniformLocation(gl_geom_pass_program, "mtls[0].tex_a");
     glUniform1i(ambient_tex_loc, texname_to_tex_unit[mtl.ambient_texname]);
 
     glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbos[i]);
@@ -199,6 +256,8 @@ void RenderPass() {
 
     glDrawArrays(GL_TRIANGLES, 0, mesh.num_verts);
   }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Cleanup() {
@@ -211,8 +270,13 @@ void Cleanup() {
     glDeleteTextures(1, &texture);
   }
 
-  glDeleteVertexArrays(1, &gl_vao);
-  glDeleteProgram(gl_program);
+  glDeleteRenderbuffers(1, &gl_gbuf_depth_rbo);
+  glDeleteTextures(1, &gl_gbuf_ambient_tex);
+  glDeleteTextures(1, &gl_gbuf_normal_tex);
+  glDeleteTextures(1, &gl_gbuf_pos_tex);
+  glDeleteFramebuffers(1, &gl_gbuf_fbo);
+  glDeleteVertexArrays(1, &gl_geom_pass_vao);
+  glDeleteProgram(gl_geom_pass_program);
 }
 
 void WindowErrorCallback(int error, const char* desc) {
