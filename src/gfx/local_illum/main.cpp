@@ -89,7 +89,7 @@ void Initialize() {
   glm::vec3 ambient_I = glm::vec3(0.3f, 0.3f, 0.3f);
   glm::vec3 diffuse_I = glm::vec3(1.f, 1.f, 1.f);
   glm::vec3 specular_I = glm::vec3(1.f, 1.f, 1.f);
-  float shininess = 5.f;
+  float shininess = 8.f;
 
   camera->SetCameraPos(glm::vec3(0.f, 20.f, 22.f));
 

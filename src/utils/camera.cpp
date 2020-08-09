@@ -5,13 +5,15 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <iostream>
+#include <limits>
 
 namespace utils {
 
 namespace {
 
 const float kWalkSpeed = 0.2f;
-const float kStrafeSpeed = 0.1f;
+const float kStrafeSpeed = 0.2f;
+const float kLookSpeed = 0.001f;
 
 // TODO: See if there's a better way to pass the member method Camera::KeyCallback() into
 // glfwSetKeyCallback(). Right now, glfwSetKeyCallback() can't take in a member method and so need
@@ -20,7 +22,11 @@ const float kStrafeSpeed = 0.1f;
 static Camera* camera = nullptr;
 
 static void KeyCallbackWrapper(GLFWwindow* window, int key, int scancode, int action, int mods) {
-  return camera->KeyCallback(window, key, scancode, action, mods);
+  camera->KeyCallback(window, key, scancode, action, mods);
+}
+
+static void MouseCallbackWrapper(GLFWwindow *window, double x, double y) {
+  camera->MouseCallback(window, x, y);
 }
 
 } // internal
@@ -33,27 +39,30 @@ Camera::Camera(GLFWwindow* window)
   camera = this;
 
   glfwSetKeyCallback(window, KeyCallbackWrapper);
+  glfwSetCursorPosCallback(window, MouseCallbackWrapper);
 }
 
 void Camera::Tick() {
-  float walk_speed = kWalkSpeed;
-  float strafe_speed = kStrafeSpeed;
+  if (fps_mode_) {
+    float walk_speed = kWalkSpeed;
+    float strafe_speed = kStrafeSpeed;
 
-  if (move_forward_) {
-    camera_pos_ += LocalToGlobalTransform(glm::vec3(0.f, 0.f, -walk_speed));
-  }
-  if (move_backward_) {
-    camera_pos_ += LocalToGlobalTransform(glm::vec3(0.f, 0.f, walk_speed));
-  }
-  if (move_left_) {
-    camera_pos_ += LocalToGlobalTransform(glm::vec3(-strafe_speed, 0.f, 0.f));
-  }
-  if (move_right_) {
-    camera_pos_ += LocalToGlobalTransform(glm::vec3(strafe_speed, 0.f, 0.f));
+    if (move_forward_) {
+      camera_pos_ += LocalToGlobalTransform(glm::vec3(0.f, 0.f, -walk_speed));
+    }
+    if (move_backward_) {
+      camera_pos_ += LocalToGlobalTransform(glm::vec3(0.f, 0.f, walk_speed));
+    }
+    if (move_left_) {
+      camera_pos_ += LocalToGlobalTransform(glm::vec3(-strafe_speed, 0.f, 0.f));
+    }
+    if (move_right_) {
+      camera_pos_ += LocalToGlobalTransform(glm::vec3(strafe_speed, 0.f, 0.f));
+    }
   }
 
   // TODO: Is the inverse operation expensive?
-  view_mat_ = // glm::inverse(glm::mat4_cast(camera_rotation_)) *
+  view_mat_ = glm::inverse(glm::mat4_cast(camera_rotation_)) *
               glm::translate(glm::mat4(1.f), -camera_pos_);
 }
 
@@ -76,6 +85,11 @@ void Camera::KeyCallback(GLFWwindow* window, int key, int scancode, int action, 
       case GLFW_KEY_D:
         move_right_ = true;
         break;
+      case GLFW_KEY_Z:
+        fps_mode_ = !fps_mode_;
+        prev_mouse_x_ = kMouseNoValue;
+        prev_mouse_y_ = kMouseNoValue;
+        break;
     }
   } else if (action == GLFW_RELEASE) {
     switch (key) {
@@ -92,6 +106,25 @@ void Camera::KeyCallback(GLFWwindow* window, int key, int scancode, int action, 
         move_right_ = false;
         break;
     }
+  }
+}
+
+void Camera::MouseCallback(GLFWwindow* window, double x, double y) {
+  if (fps_mode_) {
+    if (prev_mouse_x_ != kMouseNoValue && prev_mouse_y_ != kMouseNoValue) {
+      float yaw_change = -static_cast<float>(x - prev_mouse_x_) * kLookSpeed;
+      float pitch_change = -static_cast<float>(y - prev_mouse_y_) * kLookSpeed;
+
+      // Yaw rotation is relative to the world coordinates.
+      camera_rotation_ = 
+          glm::rotate(glm::quat(1.f, 0.f, 0.f, 0.f), yaw_change, glm::vec3(0.f, 1.f, 0.f)) *
+          camera_rotation_;
+      
+      // Pitch rotation is relative to the local coordinates of the camera.
+      camera_rotation_ = glm::rotate(camera_rotation_, pitch_change, glm::vec3(1.f, 0.f, 0.f));
+    }
+    prev_mouse_x_ = x;
+    prev_mouse_y_ = y;
   }
 }
 
