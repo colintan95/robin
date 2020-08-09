@@ -420,7 +420,10 @@ int main() {
 
   while (!glfwWindowShouldClose(glfw_window)) {
     glfwPollEvents();
+    camera->Tick();
+
     RenderPass();
+    
     glfwSwapBuffers(glfw_window);
   }
 

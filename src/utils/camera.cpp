@@ -32,7 +32,8 @@ static void MouseCallbackWrapper(GLFWwindow *window, double x, double y) {
 } // internal
 
 Camera::Camera(GLFWwindow* window) 
-    : glfw_window_(window), view_mat_(1.f), camera_rotation_(1.f, 0.f, 0.f, 0.f) {
+    : glfw_window_(window), view_mat_(1.f), camera_rotation_(1.f, 0.f, 0.f, 0.f),
+      camera_pos_(0.f, 0.f, 0.f) {
   if (glfw_window_ == nullptr) {
     throw;
   }
