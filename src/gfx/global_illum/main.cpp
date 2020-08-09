@@ -173,12 +173,13 @@ void RenderPass() {
 
   for (size_t i = 0; i < model->meshes.size(); ++i) {
     const utils::Mesh& mesh = model->meshes[i];
+    const utils::Material& mtl = mesh.materials[0];
 
     GLuint ambient_color_loc = glGetUniformLocation(gl_program, "mtls[0].Ka");
-    glUniform3f(ambient_color_loc, 0.3f, 0.3f, 0.3f);
+    glUniform3fv(ambient_color_loc, 1, glm::value_ptr(mtl.ambient_color));
 
     GLuint ambient_tex_loc = glGetUniformLocation(gl_program, "mtls[0].tex_a");
-    glUniform1i(ambient_tex_loc, texname_to_tex_unit[mesh.materials[0].ambient_texname]);
+    glUniform1i(ambient_tex_loc, texname_to_tex_unit[mtl.ambient_texname]);
 
     glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbos[i]);
     glEnableVertexAttribArray(0);
