@@ -16,6 +16,9 @@ public:
   void Tick();
 
   void SetCameraPos(const glm::vec3 camera_pos);
+  void SetWalkSpeed(float speed) { walk_speed_ = speed; }
+  void SetStrafeSpeed(float speed) { strafe_speed_ = speed; }
+  void SetLookSpeed(float speed) { look_speed_ = speed; }
 
   const glm::mat4& GetViewMatrix() const { return view_mat_; }
   const glm::vec3& GetCameraPos() const { return camera_pos_; }
@@ -34,6 +37,9 @@ private:
   glm::vec3 camera_pos_;
 
   bool fps_mode_ = false;
+  float walk_speed_ = 0.2f;
+  float strafe_speed_ = 0.2f;
+  float look_speed_ = 0.001f;
 
   bool move_forward_ = false;
   bool move_backward_ = false;

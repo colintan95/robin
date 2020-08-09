@@ -10,11 +10,7 @@
 namespace utils {
 
 namespace {
-
-const float kWalkSpeed = 0.2f;
-const float kStrafeSpeed = 0.2f;
-const float kLookSpeed = 0.001f;
-
+  
 // TODO: See if there's a better way to pass the member method Camera::KeyCallback() into
 // glfwSetKeyCallback(). Right now, glfwSetKeyCallback() can't take in a member method and so need
 // we need a static wrapper that will call our member method.
@@ -45,20 +41,17 @@ Camera::Camera(GLFWwindow* window)
 
 void Camera::Tick() {
   if (fps_mode_) {
-    float walk_speed = kWalkSpeed;
-    float strafe_speed = kStrafeSpeed;
-
     if (move_forward_) {
-      camera_pos_ += LocalToGlobalTransform(glm::vec3(0.f, 0.f, -walk_speed));
+      camera_pos_ += LocalToGlobalTransform(glm::vec3(0.f, 0.f, -walk_speed_));
     }
     if (move_backward_) {
-      camera_pos_ += LocalToGlobalTransform(glm::vec3(0.f, 0.f, walk_speed));
+      camera_pos_ += LocalToGlobalTransform(glm::vec3(0.f, 0.f, walk_speed_));
     }
     if (move_left_) {
-      camera_pos_ += LocalToGlobalTransform(glm::vec3(-strafe_speed, 0.f, 0.f));
+      camera_pos_ += LocalToGlobalTransform(glm::vec3(-strafe_speed_, 0.f, 0.f));
     }
     if (move_right_) {
-      camera_pos_ += LocalToGlobalTransform(glm::vec3(strafe_speed, 0.f, 0.f));
+      camera_pos_ += LocalToGlobalTransform(glm::vec3(strafe_speed_, 0.f, 0.f));
     }
   }
 
@@ -113,8 +106,8 @@ void Camera::KeyCallback(GLFWwindow* window, int key, int scancode, int action, 
 void Camera::MouseCallback(GLFWwindow* window, double x, double y) {
   if (fps_mode_) {
     if (prev_mouse_x_ != kMouseNoValue && prev_mouse_y_ != kMouseNoValue) {
-      float yaw_change = -static_cast<float>(x - prev_mouse_x_) * kLookSpeed;
-      float pitch_change = -static_cast<float>(y - prev_mouse_y_) * kLookSpeed;
+      float yaw_change = -static_cast<float>(x - prev_mouse_x_) * look_speed_;
+      float pitch_change = -static_cast<float>(y - prev_mouse_y_) * look_speed_;
 
       // Yaw rotation is relative to the world coordinates.
       camera_rotation_ = 

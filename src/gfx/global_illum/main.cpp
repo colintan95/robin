@@ -415,6 +415,9 @@ int main() {
   }
 
   camera = std::make_unique<utils::Camera>(glfw_window);
+  camera->SetWalkSpeed(1.f);
+  camera->SetStrafeSpeed(1.f);
+  camera->SetLookSpeed(0.001f);
 
   Initialize();
 
