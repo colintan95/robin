@@ -115,19 +115,21 @@ void Initialize() {
     exit(1);
   }
 
+  const utils::Mesh& mesh = model->meshes[0];
+
   glGenBuffers(1, &gl_pos_vbo);
   glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbo);
-  glBufferData(GL_ARRAY_BUFFER, model->positions.size() * 3, glm::value_ptr(model->positions[0]), 
+  glBufferData(GL_ARRAY_BUFFER, mesh.positions.size() * 3, glm::value_ptr(mesh.positions[0]), 
                GL_STATIC_DRAW);
 
   glGenBuffers(1, &gl_normal_vbo);
   glBindBuffer(GL_ARRAY_BUFFER, gl_normal_vbo);
-  glBufferData(GL_ARRAY_BUFFER, model->normals.size() * 3, glm::value_ptr(model->normals[0]), 
+  glBufferData(GL_ARRAY_BUFFER, mesh.normals.size() * 3, glm::value_ptr(mesh.normals[0]), 
                GL_STATIC_DRAW);
 
   glGenBuffers(1, &gl_texcoord_vbo);
   glBindBuffer(GL_ARRAY_BUFFER, gl_texcoord_vbo);
-  glBufferData(GL_ARRAY_BUFFER, model->texcoords.size() * 2, glm::value_ptr(model->texcoords[0]), 
+  glBufferData(GL_ARRAY_BUFFER, mesh.texcoords.size() * 2, glm::value_ptr(mesh.texcoords[0]), 
                GL_STATIC_DRAW);
 }
 
@@ -150,7 +152,7 @@ void RenderPass() {
   glEnableVertexAttribArray(2);
   glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
-  glDrawArrays(GL_TRIANGLES, 0, model->num_verts);
+  glDrawArrays(GL_TRIANGLES, 0, model->meshes[0].num_verts);
 }
 
 void Cleanup() {

@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -24,6 +25,8 @@ struct Image {
 };
 
 std::shared_ptr<Image> LoadImageFromFile(const std::string& path, bool flip);
+
+// std::optional<std::vector<Image>> LoadImagesFromDir(const std::string& dir);
 
 } // namespace utils
 

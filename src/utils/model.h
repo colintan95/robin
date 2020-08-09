@@ -10,11 +10,15 @@
 
 namespace utils {
 
-struct Model {
+struct Mesh {
   std::vector<glm::vec3> positions;
   std::vector<glm::vec3> normals;
   std::vector<glm::vec2> texcoords;
   uint32_t num_verts;
+};
+
+struct Model {
+  std::vector<Mesh> meshes;
 };
 
 std::shared_ptr<Model> LoadModelFromFile(const std::string& path, 
