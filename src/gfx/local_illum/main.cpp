@@ -153,18 +153,18 @@ void Initialize() {
 
   glGenBuffers(1, &gl_pos_vbo);
   glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbo);
-  glBufferData(GL_ARRAY_BUFFER, mesh.positions.size() * 3, glm::value_ptr(mesh.positions[0]), 
-               GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, mesh.positions.size() * sizeof(glm::vec3), 
+               glm::value_ptr(mesh.positions[0]), GL_STATIC_DRAW);
 
   glGenBuffers(1, &gl_normal_vbo);
   glBindBuffer(GL_ARRAY_BUFFER, gl_normal_vbo);
-  glBufferData(GL_ARRAY_BUFFER, mesh.normals.size() * 3, glm::value_ptr(mesh.normals[0]), 
-               GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, mesh.normals.size() * sizeof(glm::vec3), 
+               glm::value_ptr(mesh.normals[0]), GL_STATIC_DRAW);
 
   glGenBuffers(1, &gl_texcoord_vbo);
   glBindBuffer(GL_ARRAY_BUFFER, gl_texcoord_vbo);
-  glBufferData(GL_ARRAY_BUFFER, mesh.texcoords.size() * 2, glm::value_ptr(mesh.texcoords[0]), 
-               GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, mesh.texcoords.size() * sizeof(glm::vec2), 
+               glm::value_ptr(mesh.texcoords[0]), GL_STATIC_DRAW);
 }
 
 void RenderPass() {
