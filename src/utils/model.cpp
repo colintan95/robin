@@ -54,75 +54,79 @@ bool LoadVertexDataForMesh(const tinyobj::shape_t& shape, const tinyobj::attrib_
   return true;
 }
 
-// bool LoadMaterialDataForMesh(const tinyobj::shape_t& shape, 
-//                              const std::vector<tinyobj::material_t>& materials, Mesh* mesh) {
-//   mesh->material_ids.resize(mesh->num_verts);
+Material CreateMaterialFromLoaderData(const tinyobj::material_t& loader_mtl) {
+  Material mtl;
 
-//   std::unordered_map<int, unsigned int> mtl_conversion_table;
+  mtl.ambient_color  = glm::vec3(loader_mtl.ambient[0],
+                                loader_mtl.ambient[1],
+                                loader_mtl.ambient[2]);
+  mtl.diffuse_color  = glm::vec3(loader_mtl.diffuse[0],
+                                loader_mtl.diffuse[1],
+                                loader_mtl.diffuse[2]);
+  mtl.specular_color = glm::vec3(loader_mtl.specular[0],
+                                loader_mtl.specular[1],
+                                loader_mtl.specular[2]);
+  mtl.emission_color = glm::vec3(loader_mtl.emission[0],
+                                loader_mtl.emission[1],
+                                loader_mtl.emission[2]);
+  mtl.shininess = loader_mtl.shininess;
 
-//   size_t vert_idx = 0;
-//   for (size_t i = 0; i < shape.mesh.num_face_vertices.size(); ++i) {
-//     int loader_id = shape.mesh.material_ids[i];
-//     if (loader_id == -1) {
-//       continue;
-//     }
-    
-//     if (mtl_conversion_table.find(loader_id) == mtl_conversion_table.end()) {
-//       tinyobj::material_t loader_mtl = material_data[loader_id];
-//       Material mtl;
+  switch (loader_mtl.illum) {
+    case 0:
+      mtl.illum = IllumModel::kColorOnly;
+      break;
+    case 1:
+      mtl.illum = IllumModel::kAmbientOnly;
+      break;
+    case 2:
+      mtl.illum = IllumModel::kHighlight;
+      break;
+    default:
+      mtl.illum = IllumModel::kInvalid;
+      break;
+  }
 
-//       mtl.ambient_color  = glm::vec3(loader_mtl.ambient[0],
-//                                      loader_mtl.ambient[1],
-//                                      loader_mtl.ambient[2]);
-//       mtl.diffuse_color  = glm::vec3(loader_mtl.diffuse[0],
-//                                      loader_mtl.diffuse[1],
-//                                      loader_mtl.diffuse[2]);
-//       mtl.specular_color = glm::vec3(loader_mtl.specular[0],
-//                                      loader_mtl.specular[1],
-//                                      loader_mtl.specular[2]);
-//       mtl.emission_color = glm::vec3(loader_mtl.emission[0],
-//                                     loader_mtl.emission[1],
-//                                     loader_mtl.emission[2]);
-//       mtl.shininess = loader_mtl.shininess;
+  if (!loader_mtl.ambient_texname.empty()) {
+    mtl.ambient_texname = loader_mtl.ambient_texname;
+  }
+  if (!loader_mtl.diffuse_texname.empty()) {
+    mtl.diffuse_texname = loader_mtl.diffuse_texname;
+  }
+  if (!loader_mtl.specular_texname.empty()) {
+    mtl.specular_texname = loader_mtl.specular_texname;
+  }
 
-//       switch (loader_mtl.illum) {
-//         case 0:
-//           mtl.illum = IllumModel::kColorOnly;
-//           break;
-//         case 1:
-//           mtl.illum = IllumModel::kAmbientOnly;
-//           break;
-//         case 2:
-//           mtl.illum = IllumModel::kHighlight;
-//           break;
-//         default:
-//           mtl.illum = IllumModel::kInvalid;
-//           break;
-//       }
+  return mtl;
+}
 
-//       if (!loader_mtl.ambient_texname.empty()) {
-//         mtl.ambient_texname = loader_mtl.ambient_texname;
-//       }
-//       if (!loader_mtl.diffuse_texname.empty()) {
-//         mtl.diffuse_texname = loader_mtl.diffuse_texname;
-//       }
-//       if (!loader_mtl.specular_texname.empty()) {
-//         mtl.specular_texname = loader_mtl.specular_texname;
-//       }
+bool LoadMaterialDataForMesh(const tinyobj::shape_t& shape, 
+                             const std::vector<tinyobj::material_t>& loader_mtls, Mesh* mesh) {
+  mesh->material_ids.resize(mesh->num_verts);
 
-//       mtl_conversion_table[loader_id] = 
-//         static_cast<uint32_t>(mesh->material_list.size());
-//       mesh->material_list.push_back(mtl);
-//     }
+  std::unordered_map<int, int> loader_id_to_mtl_id;
 
-//     unsigned int mtl_id = mtl_conversion_table[loader_id];
+  size_t vert_idx = 0;
+  for (size_t i = 0; i < shape.mesh.num_face_vertices.size(); ++i) {
+    int mtl_id = -1;
 
-//     for (size_t j = 0; j < shape.mesh.num_face_vertices[i]; ++j) {
-//       mesh->material_ids[vert_idx] = mtl_id;
-//       ++vert_idx;
-//     }
-//   }
-// }
+    int loader_id = shape.mesh.material_ids[i];
+    if (loader_id != -1) {
+      // If the material is new, creates a new material id in the conversion table.
+      if (loader_id_to_mtl_id.find(loader_id) == loader_id_to_mtl_id.end()) {
+        loader_id_to_mtl_id[loader_id] = static_cast<int>(mesh->materials.size());
+        mesh->materials.push_back(CreateMaterialFromLoaderData(loader_mtls[loader_id]));
+      }
+
+      mtl_id = loader_id_to_mtl_id[loader_id];
+    }
+
+    for (size_t j = 0; j < shape.mesh.num_face_vertices[i]; ++j) {
+      mesh->material_ids[vert_idx] = mtl_id;
+      ++vert_idx;
+    }
+  }
+  return true;
+}
 
 } // namespace
 
@@ -153,9 +157,15 @@ std::shared_ptr<Model> LoadModelFromFile(const std::string& path,
   for (const tinyobj::shape_t& shape : shapes) {
     Mesh& mesh = model->meshes[mesh_idx];
 
-    mesh.num_verts = shape.mesh.num_face_vertices.size() * 3;
-    LoadVertexDataForMesh(shape, attribs, &mesh);
-    // LoadMaterialDataForMesh(shape, materials, &mesh);
+    // IMPT: Only correct because we assume that all faces are triangles.
+    mesh.num_verts = shape.mesh.num_face_vertices.size() * 3; 
+
+    if (!LoadVertexDataForMesh(shape, attribs, &mesh)) {
+      return false;
+    }
+    if (!LoadMaterialDataForMesh(shape, materials, &mesh)) {
+      return false;
+    }
 
     ++mesh_idx;
   }
