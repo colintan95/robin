@@ -1,16 +1,19 @@
 target_sources(utils
   PUBLIC
+    "camera.h"
     "image.h"
     "model.h"
     "program.h"
     "shader.h"
   PRIVATE
+    "camera.cpp"
     "image.cpp"
     "model.cpp"
     "program.cpp"
     "shader.cpp")
 
 target_link_libraries(utils PRIVATE glew)
+target_link_libraries(utils PRIVATE glfw)
 target_link_libraries(utils PRIVATE glm)
 target_link_libraries(utils PRIVATE OpenGL::GL)
 target_link_libraries(utils PRIVATE stb)
