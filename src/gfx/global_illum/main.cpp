@@ -35,7 +35,8 @@ std::vector<GLuint> gl_texcoord_vbos;
 std::vector<GLuint> gl_mtl_id_vbos;
 
 std::unordered_map<std::string, std::shared_ptr<utils::Image>> tex_images;
-std::unordered_map<std::string, int> texname_to_gl_tex;
+std::unordered_map<std::string, GLuint> texname_to_gl_texture;
+std::unordered_map<std::string, int> texname_to_tex_unit;
 
 void Initialize() {
   glEnable(GL_TEXTURE_2D);
@@ -102,21 +103,32 @@ void Initialize() {
 
   for (const utils::Mesh& mesh : model->meshes) {
     for (const utils::Material& mtl : mesh.materials) {
-      for (const std::string& texname : { mtl.ambient_texname, 
-                                          mtl.diffuse_texname, 
-                                          mtl.specular_texname }) {
-        // Loads the image file if it hasn't been loaded in before.
-        if (!texname.empty() && tex_images.find(texname) == tex_images.end()) {
-          std::shared_ptr<utils::Image> img =
-              utils::LoadImageFromFile("assets/sponza/" + texname, true);
-          if (img != nullptr) {
-            tex_images[texname] = std::move(img);
-          } else {
-            std::cerr << "Could not find image file: " << texname << std::endl;
-          }
+      const std::string& texname = mtl.ambient_texname;
+      // Loads the image file if it hasn't been loaded in before.
+      if (!texname.empty() && tex_images.find(texname) == tex_images.end()) {
+        std::shared_ptr<utils::Image> img =
+            utils::LoadImageFromFile("assets/sponza/" + texname, true);
+        if (img != nullptr) {
+          tex_images[texname] = std::move(img);
+        } else {
+          std::cerr << "Could not find image file: " << texname << std::endl;
         }
       }
     }
+  }
+
+  for (const auto& [texname, img] : tex_images) {
+    GLuint texture;
+    int tex_unit = texname_to_tex_unit.size();
+    glGenTextures(1, &texture);
+    glActiveTexture(GL_TEXTURE0 + tex_unit);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img->width, img->height, 0, GL_RGB, GL_UNSIGNED_BYTE, 
+                 img->data.data());
+    texname_to_gl_texture[texname] = texture;
+    texname_to_tex_unit[texname] = tex_unit;
   }
 
   gl_pos_vbos.resize(model->meshes.size());
@@ -160,6 +172,14 @@ void RenderPass() {
   glBindVertexArray(gl_vao);
 
   for (size_t i = 0; i < model->meshes.size(); ++i) {
+    const utils::Mesh& mesh = model->meshes[i];
+
+    GLuint ambient_color_loc = glGetUniformLocation(gl_program, "mtls[0].Ka");
+    glUniform3f(ambient_color_loc, 0.3f, 0.3f, 0.3f);
+
+    GLuint ambient_tex_loc = glGetUniformLocation(gl_program, "mtls[0].tex_a");
+    glUniform1i(ambient_tex_loc, texname_to_tex_unit[mesh.materials[0].ambient_texname]);
+
     glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbos[i]);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
@@ -172,7 +192,7 @@ void RenderPass() {
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glDrawArrays(GL_TRIANGLES, 0, model->meshes[i].num_verts);
+    glDrawArrays(GL_TRIANGLES, 0, mesh.num_verts);
   }
 }
 
@@ -181,6 +201,11 @@ void Cleanup() {
   glDeleteBuffers(gl_texcoord_vbos.size(), &gl_texcoord_vbos[0]);
   glDeleteBuffers(gl_normal_vbos.size(), &gl_normal_vbos[0]);
   glDeleteBuffers(gl_pos_vbos.size(), &gl_pos_vbos[0]);
+  
+  for (const auto& [texname, texture] : texname_to_gl_texture) {
+    glDeleteTextures(1, &texture);
+  }
+
   glDeleteVertexArrays(1, &gl_vao);
   glDeleteProgram(gl_program);
 }
