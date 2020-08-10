@@ -84,9 +84,9 @@ void Initialize() {
   proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);
 
   glm::vec3 light_pos = glm::vec3(0.f, 9.0f, 0.f);
-  glm::vec3 ambient_I = glm::vec3(0.5f, 0.5f, 0.5f);
-  glm::vec3 diffuse_I = glm::vec3(0.5f, 0.5f, 0.5f);
-  glm::vec3 specular_I = glm::vec3(0.1f, 0.1f, 0.1f);
+  glm::vec3 ambient_I = glm::vec3(0.8f, 0.8f, 0.8f);
+  glm::vec3 diffuse_I = glm::vec3(0.3f, 0.3f, 0.3f);
+  glm::vec3 specular_I = glm::vec3(1.f, 1.f, 1.f);
   float shininess = 8.f;
 
   camera->SetCameraPos(glm::vec3(0.f, 5.f, 12.5f));
