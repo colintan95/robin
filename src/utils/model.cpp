@@ -4,6 +4,8 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tinyobjloader/tiny_obj_loader.h"
 
+#include <algorithm>
+#include <cassert>
 #include <iostream>
 #include <unordered_map>
 #include <utility>
@@ -14,10 +16,48 @@ namespace {
 
 bool LoadVertexDataForMesh(const tinyobj::shape_t& shape, const tinyobj::attrib_t& attribs,
                            Mesh* mesh) {
-  mesh->positions.resize(mesh->num_verts);
-  mesh->normals.resize(mesh->num_verts);
-  mesh->texcoords.resize(mesh->num_verts);
+  assert(mesh->positions.empty());
+  assert(mesh->normals.empty());
+  assert(mesh->texcoords.empty());
 
+  // IMPT: Only correct because we assume that all faces are triangles.
+  mesh->num_verts = shape.mesh.num_face_vertices.size() * 3; 
+
+  bool use_pos_data = true;
+  bool use_normal_data = true;
+  bool use_texcoord_data = true;
+
+  // We won't load in data for a certain vertex type (e.g. normal, texcoord) if there's at least
+  // one -1 value in the tinyobjloader data (i.e. at least one vertex that doesn't have data for 
+  // that type).
+  // If this happens for normals, we will generate them ourselves using the position data.
+  for (const tinyobj::index_t& vert_indices : shape.mesh.indices) {
+    if (vert_indices.vertex_index == -1) {
+      use_pos_data = false;
+    }
+    if (vert_indices.normal_index == -1) {
+      use_normal_data = false;
+    }
+    if (vert_indices.texcoord_index == -1) {
+      use_texcoord_data = false;
+    }
+  }
+
+  if (!use_pos_data) {
+    std::cerr << "Loaded model has missing position data." << std::endl;
+    return false;
+  }
+
+  if (use_pos_data) {
+    mesh->positions.resize(mesh->num_verts);
+  }
+  if (use_normal_data) {
+    mesh->normals.resize(mesh->num_verts);
+  }
+  if (use_texcoord_data) {
+    mesh->texcoords.resize(mesh->num_verts);
+  }
+  
   // Code adapted from vulkan-tutorial.com
   // Triangle faces only - for now.
   size_t vert_idx = 0;
@@ -31,19 +71,22 @@ bool LoadVertexDataForMesh(const tinyobj::shape_t& shape, const tinyobj::attrib_
     for (size_t i = 0; i < num_verts; ++i) {
       auto vert_indices = shape.mesh.indices[vert_idx];
       
-      if (vert_indices.vertex_index != -1) {
+      if (use_pos_data) {
+        assert(vert_indices.vertex_index != -1);
         size_t base_idx = vert_indices.vertex_index * 3;
         mesh->positions[vert_idx].x = attribs.vertices[base_idx + 0];
         mesh->positions[vert_idx].y = attribs.vertices[base_idx + 1];
         mesh->positions[vert_idx].z = attribs.vertices[base_idx + 2];
       }
-      if (vert_indices.normal_index != -1) {
+      if (use_normal_data) {
+        assert(vert_indices.normal_index != -1);
         size_t base_idx = vert_indices.normal_index * 3;
         mesh->normals[vert_idx].x = attribs.normals[base_idx + 0];
         mesh->normals[vert_idx].y = attribs.normals[base_idx + 1];
         mesh->normals[vert_idx].z = attribs.normals[base_idx + 2];
       }
-      if (vert_indices.texcoord_index != -1) {
+      if (use_texcoord_data) {
+        assert(vert_indices.texcoord_index != -1);
         size_t base_idx = vert_indices.texcoord_index * 2;
         mesh->texcoords[vert_idx].s = attribs.texcoords[base_idx + 0];
         mesh->texcoords[vert_idx].t = attribs.texcoords[base_idx + 1];
@@ -51,6 +94,21 @@ bool LoadVertexDataForMesh(const tinyobj::shape_t& shape, const tinyobj::attrib_
       ++vert_idx;
     }
   }
+
+  // Generates the normal data if it's missing. Assumes that the position data is *not* indexed and
+  // the vertices are ordered anti-clockwise.
+  if (!use_normal_data) {
+    mesh->normals.resize(mesh->num_verts);
+
+    for (size_t i = 0; i < mesh->num_verts; i += 3) {
+      glm::vec3 left_vec = mesh->positions[i+1] - mesh->positions[i];
+      glm::vec3 right_vec = mesh->positions[i+2] - mesh->positions[i];
+
+      mesh->normals[i] = mesh->normals[i+1] = mesh->normals[i+1] = 
+          glm::normalize(glm::cross(left_vec, right_vec));
+    }
+  }
+
   return true;
 }
 
@@ -156,9 +214,6 @@ std::shared_ptr<Model> LoadModelFromFile(const std::string& path,
   size_t mesh_idx = 0;
   for (const tinyobj::shape_t& shape : shapes) {
     Mesh& mesh = model->meshes[mesh_idx];
-
-    // IMPT: Only correct because we assume that all faces are triangles.
-    mesh.num_verts = shape.mesh.num_face_vertices.size() * 3; 
 
     if (!LoadVertexDataForMesh(shape, attribs, &mesh)) {
       return false;
