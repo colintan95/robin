@@ -27,18 +27,14 @@ std::unique_ptr<utils::Camera> camera;
 
 GLuint gl_program;
 GLuint gl_vao;
-GLuint gl_pos_vbo;
-GLuint gl_normal_vbo;
-GLuint gl_texcoord_vbo;
-GLuint gl_texture;
+std::vector<GLuint> gl_pos_vbos;
+std::vector<GLuint> gl_normal_vbos;
 std::shared_ptr<utils::Model> model;
-std::shared_ptr<utils::Image> img;
 
 glm::mat4 view_mat;
 glm::mat4 proj_mat;
 
 void Initialize() {
-  glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
   glClearColor(0.f, 0.f, 0.f, 1.f);
 
@@ -87,13 +83,13 @@ void Initialize() {
 
   proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);
 
-  glm::vec3 light_pos = glm::vec3(0.f, 20.f, -22.f);
-  glm::vec3 ambient_I = glm::vec3(0.3f, 0.3f, 0.3f);
-  glm::vec3 diffuse_I = glm::vec3(1.f, 1.f, 1.f);
-  glm::vec3 specular_I = glm::vec3(1.f, 1.f, 1.f);
+  glm::vec3 light_pos = glm::vec3(0.f, 9.0f, 0.f);
+  glm::vec3 ambient_I = glm::vec3(0.5f, 0.5f, 0.5f);
+  glm::vec3 diffuse_I = glm::vec3(0.5f, 0.5f, 0.5f);
+  glm::vec3 specular_I = glm::vec3(0.1f, 0.1f, 0.1f);
   float shininess = 8.f;
 
-  camera->SetCameraPos(glm::vec3(0.f, 20.f, 22.f));
+  camera->SetCameraPos(glm::vec3(0.f, 5.f, 12.5f));
 
   GLint light_pos_loc = glGetUniformLocation(gl_program, "light_pos");
   glUniform3fv(light_pos_loc, 1, glm::value_ptr(light_pos));
@@ -107,49 +103,27 @@ void Initialize() {
   GLint specular_loc = glGetUniformLocation(gl_program, "specular_I");
   glUniform3fv(specular_loc, 1, glm::value_ptr(specular_I));
 
-  GLint shininess_loc = glGetUniformLocation(gl_program, "shininess");
-  glUniform1f(shininess_loc, shininess);
-  
-  img = utils::LoadImageFromFile("assets/teapot/texture.jpg", false /* flip */);
-  if (img == nullptr) {
-    std::cerr << "Could not load image." << std::endl;
-    exit(1);
-  }
-  assert(img->format == utils::ImageFormat::kRGB);
-
-  glGenTextures(1, &gl_texture);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, gl_texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img->width, img->height, 0, GL_RGB, GL_UNSIGNED_BYTE, 
-               img->data.data());
-
-  GLint sampler_loc = glGetUniformLocation(gl_program, "tex_sampler");
-  glUniform1i(sampler_loc, 1);
-
-  model = utils::LoadModelFromFile("assets/teapot/teapot.obj", "assets/teapot");
+  model = utils::LoadModelFromFile("assets/cornell_box/cornell_box.obj", "assets/cornell_box");
   if (model == nullptr) {
     std::cerr << "Could not load model." << std::endl;
     exit(1);
   }
 
-  const utils::Mesh& mesh = model->meshes[0];
+  gl_pos_vbos.resize(model->meshes.size());
+  glGenBuffers(gl_pos_vbos.size(), &gl_pos_vbos[0]);
+  for (size_t i = 0; i < gl_pos_vbos.size(); ++i) {
+    glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbos[i]);
+    glBufferData(GL_ARRAY_BUFFER, model->meshes[i].positions.size() * sizeof(glm::vec3), 
+                 glm::value_ptr(model->meshes[i].positions[0]), GL_STATIC_DRAW);
+  }
 
-  glGenBuffers(1, &gl_pos_vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbo);
-  glBufferData(GL_ARRAY_BUFFER, mesh.positions.size() * sizeof(glm::vec3), 
-               glm::value_ptr(mesh.positions[0]), GL_STATIC_DRAW);
-
-  glGenBuffers(1, &gl_normal_vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, gl_normal_vbo);
-  glBufferData(GL_ARRAY_BUFFER, mesh.normals.size() * sizeof(glm::vec3), 
-               glm::value_ptr(mesh.normals[0]), GL_STATIC_DRAW);
-
-  glGenBuffers(1, &gl_texcoord_vbo);
-  glBindBuffer(GL_ARRAY_BUFFER, gl_texcoord_vbo);
-  glBufferData(GL_ARRAY_BUFFER, mesh.texcoords.size() * sizeof(glm::vec2), 
-               glm::value_ptr(mesh.texcoords[0]), GL_STATIC_DRAW);
+  gl_normal_vbos.resize(model->meshes.size());
+  glGenBuffers(gl_normal_vbos.size(), &gl_normal_vbos[0]);
+  for (size_t i = 0; i < gl_normal_vbos.size(); ++i) {
+    glBindBuffer(GL_ARRAY_BUFFER, gl_normal_vbos[i]);
+    glBufferData(GL_ARRAY_BUFFER, model->meshes[i].normals.size() * sizeof(glm::vec3), 
+                 glm::value_ptr(model->meshes[i].normals[0]), GL_STATIC_DRAW);
+  }
 }
 
 void RenderPass() {
@@ -158,48 +132,54 @@ void RenderPass() {
 
   glUseProgram(gl_program);
 
-  glm::mat4 model_mat = 
-      glm::rotate(glm::mat4(1.f), -(glm::pi<float>() / 2.f), glm::vec3(1.f, 0.f, 0.f));
-  view_mat = camera->GetViewMatrix();
+  for (size_t i = 0; i < model->meshes.size(); ++i) {
+    const utils::Mesh& mesh = model->meshes[i];
 
-  glm::mat4 mv_mat = view_mat * model_mat;
-  glm::mat4 mvp_mat = proj_mat * mv_mat;
+    glm::mat4 model_mat = glm::scale(glm::mat4(1.f), glm::vec3(5.f, 5.f, 5.f));
+    view_mat = camera->GetViewMatrix();
 
-  GLint model_mat_loc = glGetUniformLocation(gl_program, "model_mat");
-  glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
-    
-  GLint mvp_mat_loc = glGetUniformLocation(gl_program, "mvp_mat");
-  glUniformMatrix4fv(mvp_mat_loc, 1, GL_FALSE, glm::value_ptr(mvp_mat));
+    glm::mat4 mv_mat = view_mat * model_mat;
+    glm::mat4 mvp_mat = proj_mat * mv_mat;
 
-  glm::mat3 normal_mat = glm::transpose(glm::inverse(glm::mat3(mv_mat)));
-  GLint normal_mat_loc = glGetUniformLocation(gl_program, "normal_mat");
-  glUniformMatrix3fv(normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat)); 
+    GLint model_mat_loc = glGetUniformLocation(gl_program, "model_mat");
+    glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
+      
+    GLint mvp_mat_loc = glGetUniformLocation(gl_program, "mvp_mat");
+    glUniformMatrix4fv(mvp_mat_loc, 1, GL_FALSE, glm::value_ptr(mvp_mat));
 
-  GLint camera_pos_loc = glGetUniformLocation(gl_program, "camera_pos");
-  glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera->GetCameraPos()));
+    glm::mat3 normal_mat = glm::transpose(glm::inverse(glm::mat3(mv_mat)));
+    GLint normal_mat_loc = glGetUniformLocation(gl_program, "normal_mat");
+    glUniformMatrix3fv(normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat)); 
 
-  glBindVertexArray(gl_vao);
+    GLint camera_pos_loc = glGetUniformLocation(gl_program, "camera_pos");
+    glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera->GetCameraPos()));
 
-  glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbo);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    GLint ambient_color_loc = glGetUniformLocation(gl_program, "ambient_color");
+    glUniform3fv(ambient_color_loc, 1, glm::value_ptr(mesh.materials[0].ambient_color));
 
-  glBindBuffer(GL_ARRAY_BUFFER, gl_normal_vbo);
-  glEnableVertexAttribArray(1);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+    GLint specular_color_loc = glGetUniformLocation(gl_program, "specular_color");
+    glUniform3fv(specular_color_loc, 1, glm::value_ptr(mesh.materials[0].specular_color));
 
-  glBindBuffer(GL_ARRAY_BUFFER, gl_texcoord_vbo);
-  glEnableVertexAttribArray(2);
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    GLint shininess_loc = glGetUniformLocation(gl_program, "shininess");
+    glUniform1f(shininess_loc, mesh.materials[0].shininess);
 
-  glDrawArrays(GL_TRIANGLES, 0, model->meshes[0].num_verts);
+    glBindVertexArray(gl_vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbos[i]);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, gl_normal_vbos[i]);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    glDrawArrays(GL_TRIANGLES, 0, mesh.num_verts);
+  }
 }
 
 void Cleanup() {
-  glDeleteBuffers(1, &gl_texcoord_vbo);
-  glDeleteBuffers(1, &gl_normal_vbo);
-  glDeleteBuffers(1, &gl_pos_vbo);
-  glDeleteTextures(1, &gl_texture);
+  glDeleteBuffers(gl_normal_vbos.size(), &gl_normal_vbos[0]);
+  glDeleteBuffers(gl_pos_vbos.size(), &gl_pos_vbos[0]);
   glDeleteVertexArrays(1, &gl_vao);
   glDeleteProgram(gl_program);
 }

@@ -104,7 +104,7 @@ bool LoadVertexDataForMesh(const tinyobj::shape_t& shape, const tinyobj::attrib_
       glm::vec3 left_vec = mesh->positions[i+1] - mesh->positions[i];
       glm::vec3 right_vec = mesh->positions[i+2] - mesh->positions[i];
 
-      mesh->normals[i] = mesh->normals[i+1] = mesh->normals[i+1] = 
+      mesh->normals[i] = mesh->normals[i+1] = mesh->normals[i+2] = 
           glm::normalize(glm::cross(left_vec, right_vec));
     }
   }
