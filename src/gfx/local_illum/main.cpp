@@ -2,9 +2,11 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/glm.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <GLFW/glfw3.h>
 
 #include <cassert>
@@ -204,8 +206,9 @@ void ShadowPass() {
     const utils::Mesh& mesh = model->meshes[i];
 
     glm::mat4 model_mat = glm::scale(glm::mat4(1.f), glm::vec3(5.f, 5.f, 5.f));
-    glm::mat4 view_mat = glm::lookAt(light_pos, light_pos + glm::vec3(0.f, -1.f, 0.f),
-                                     glm::vec3(0.f, 0.f, 1.f));
+    glm::mat4 view_mat = 
+        glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f)) *
+        glm::translate(glm::mat4(1.f), glm::vec3(0.f, -9.f, 0.f));
     glm::mat4 proj_mat = glm::perspective(glm::radians(90.f), 1.f, 1.f, 30.f);
 
     glm::mat4 mvp_mat = proj_mat * view_mat * model_mat;
