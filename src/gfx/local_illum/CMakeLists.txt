@@ -18,7 +18,9 @@ target_include_directories(local_illum PRIVATE ${SRC_INCLUDE_DIR})
 
 set(SHADER_SRC_FILES 
     "local_illum.frag"
-    "local_illum.vert")
+    "local_illum.vert"
+    "shadow_pass.frag"
+    "shadow_pass.vert")
 add_shaders(local_illum "${SHADER_SRC_FILES}")
 
 # In the executable folder, creates a symlink to the assets folder.
