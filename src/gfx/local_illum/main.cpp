@@ -42,6 +42,8 @@ GLuint gl_shadow_fbo;
 GLuint gl_shadow_tex;
 
 glm::vec3 light_pos;
+glm::mat4 shadow_view_mat;
+glm::mat4 shadow_proj_mat;
 
 void Initialize() {
   glEnable(GL_DEPTH_TEST);
@@ -127,6 +129,11 @@ void CreateShadowPass() {
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, gl_shadow_tex, 0);
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  shadow_view_mat = 
+      glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f)) *
+      glm::translate(glm::mat4(1.f), glm::vec3(0.f, -9.f, 0.f));
+  shadow_proj_mat = glm::perspective(glm::radians(90.f), 1.f, 1.f, 30.f);
 }
 
 void CreateLightPass() {
@@ -206,12 +213,7 @@ void ShadowPass() {
     const utils::Mesh& mesh = model->meshes[i];
 
     glm::mat4 model_mat = glm::scale(glm::mat4(1.f), glm::vec3(5.f, 5.f, 5.f));
-    glm::mat4 view_mat = 
-        glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f)) *
-        glm::translate(glm::mat4(1.f), glm::vec3(0.f, -9.f, 0.f));
-    glm::mat4 proj_mat = glm::perspective(glm::radians(90.f), 1.f, 1.f, 30.f);
-
-    glm::mat4 mvp_mat = proj_mat * view_mat * model_mat;
+    glm::mat4 mvp_mat = shadow_proj_mat * shadow_view_mat * model_mat;
 
     GLint mvp_mat_loc = glGetUniformLocation(gl_shadow_program, "mvp_mat");
     glUniformMatrix4fv(mvp_mat_loc, 1, GL_FALSE, glm::value_ptr(mvp_mat));
@@ -254,6 +256,10 @@ void LightPass() {
     GLint normal_mat_loc = glGetUniformLocation(gl_program, "normal_mat");
     glUniformMatrix3fv(normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat)); 
 
+    glm::mat4 shadow_mat = shadow_proj_mat * shadow_view_mat * model_mat;
+    GLint shadow_mat_loc = glGetUniformLocation(gl_program, "shadow_mat");
+    glUniformMatrix4fv(shadow_mat_loc, 1, GL_FALSE, glm::value_ptr(shadow_mat));
+
     GLint camera_pos_loc = glGetUniformLocation(gl_program, "camera_pos");
     glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera->GetCameraPos()));
 
@@ -265,6 +271,9 @@ void LightPass() {
 
     GLint shininess_loc = glGetUniformLocation(gl_program, "shininess");
     glUniform1f(shininess_loc, mesh.materials[0].shininess);
+
+    GLint shadow_tex_loc = glGetUniformLocation(gl_program, "shadow_tex");
+    glUniform1i(shadow_tex_loc, 1);
 
     glBindVertexArray(gl_vao);
 
