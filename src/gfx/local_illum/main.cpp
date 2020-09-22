@@ -1,8 +1,6 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GL/gl.h>
-
-
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/glm.hpp>
@@ -13,6 +11,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <memory>
+
 #include "utils/camera.h"
 #include "utils/image.h"
 #include "utils/model.h"
@@ -85,7 +84,7 @@ void CreateShadowPass() {
   }
 
   GLuint vert_shader = glCreateShader(GL_VERTEX_SHADER);
-  if (auto src_opt = utils::LoadShaderSource("shadow_pass.vert")) {
+  if (std::optional<std::string> src_opt = utils::LoadShaderSource("shadow_pass.vert")) {
     if (!utils::CompileShader(vert_shader, src_opt.value())) {
       std::cerr << "Could not compile vertex shader." << std::endl;
       exit(1);
@@ -96,7 +95,7 @@ void CreateShadowPass() {
   }
 
   GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-  if (auto src_opt = utils::LoadShaderSource("shadow_pass.frag")) {
+  if (std::optional<std::string> src_opt = utils::LoadShaderSource("shadow_pass.frag")) {
     if (!utils::CompileShader(frag_shader, src_opt.value())) {
       std::cerr << "Could not compile fragment shader." << std::endl;
       exit(1);
@@ -126,45 +125,39 @@ void CreateShadowPass() {
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_CUBE_MAP, gl_shadow_tex);
   for (size_t i = 0; i < 6; ++i) {
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_R32F, 
-                 kShadowTexWidth, kShadowTexHeight, 0, GL_RED, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_R16F, kShadowTexWidth, kShadowTexHeight, 
+                 0, GL_RED, GL_FLOAT, nullptr);
   }
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  
-  shadow_view_mats[0] = // +x
-      glm::lookAt(light_pos, light_pos + glm::vec3(1.0, 0.0, 0.0), 
-                  glm::vec3(0.0, -1.0, 0.0));
-  shadow_view_mats[1] = // -x
-      glm::lookAt(light_pos, light_pos + glm::vec3(-1.0, 0.0, 0.0), 
-                  glm::vec3(0.0, -1.0, 0.0));
-  shadow_view_mats[2] = // +y
-      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, 1.0, 0.0), 
-                  glm::vec3(0.0, 0.0, 1.0));
-  shadow_view_mats[3] = // -y
-      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, -1.0, 0.0), 
-                  glm::vec3(0.0, 0.0, -1.0));
-  shadow_view_mats[4] = // +z
-      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, 0.0, 1.0), 
-                  glm::vec3(0.0, -1.0, 0.0));
-  shadow_view_mats[5] = // -z
-      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, 0.0, -1.0), 
-                  glm::vec3(0.0, -1.0, 0.0));
-      
-  glGenFramebuffers(1, &gl_shadow_fbo);
 
+  shadow_view_mats[0] = // +x
+      glm::lookAt(light_pos, light_pos + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+  shadow_view_mats[1] = // -x
+      glm::lookAt(light_pos, light_pos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0));
+  shadow_view_mats[2] = // +y
+      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0));
+  shadow_view_mats[3] = // -y
+      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0));
+  shadow_view_mats[4] = // +z
+      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0));
+  shadow_view_mats[5] = // -z
+      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0));
+      
   glGenRenderbuffers(1, &gl_shadow_rbo);
+
   glBindRenderbuffer(GL_RENDERBUFFER, gl_shadow_rbo);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, kShadowTexWidth,
-                        kShadowTexHeight);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, kShadowTexWidth, kShadowTexHeight);
   glBindRenderbuffer(GL_RENDERBUFFER, 0);
 
+  glGenFramebuffers(1, &gl_shadow_fbo);
+
   glBindFramebuffer(GL_FRAMEBUFFER, gl_shadow_fbo);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                            GL_RENDERBUFFER, gl_shadow_rbo);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 
+                            gl_shadow_rbo);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
       
-  shadow_proj_mat = glm::perspective(glm::radians(90.f), 1.f, kShadowNearPlane, 
-                                     kShadowFarPlane);
+  shadow_proj_mat = glm::perspective(glm::radians(90.f), 1.f, kShadowNearPlane, kShadowFarPlane);
 
   GLint far_plane_loc = glGetUniformLocation(gl_shadow_program, "far_plane");
   glUniform1f(far_plane_loc, kShadowFarPlane);                                   
@@ -181,7 +174,7 @@ void CreateLightPass() {
   }
 
   GLuint vert_shader = glCreateShader(GL_VERTEX_SHADER);
-  if (auto src_opt = utils::LoadShaderSource("local_illum.vert")) {
+  if (std::optional<std::string> src_opt = utils::LoadShaderSource("local_illum.vert")) {
     if (!utils::CompileShader(vert_shader, src_opt.value())) {
       std::cerr << "Could not compile vertex shader." << std::endl;
       exit(1);
@@ -192,7 +185,7 @@ void CreateLightPass() {
   }
 
   GLuint frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
-  if (auto src_opt = utils::LoadShaderSource("local_illum.frag")) {
+  if (std::optional<std::string> src_opt = utils::LoadShaderSource("local_illum.frag")) {
     if (!utils::CompileShader(frag_shader, src_opt.value())) {
       std::cerr << "Could not compile fragment shader." << std::endl;
       exit(1);
@@ -248,8 +241,7 @@ void ShadowPass() {
                            gl_shadow_tex, 0);
 
     glViewport(0, 0, kShadowTexWidth, kShadowTexHeight);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(gl_shadow_program);
 
@@ -303,12 +295,6 @@ void LightPass() {
     glm::mat3 normal_mat = glm::transpose(glm::inverse(glm::mat3(mv_mat)));
     GLint normal_mat_loc = glGetUniformLocation(gl_program, "normal_mat");
     glUniformMatrix3fv(normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat)); 
-
-    // TODO: Replace the identity mat with the view mat of the light.
-    glm::mat4 shadow_view_mat = glm::translate(glm::mat4(1.f), glm::vec3(0.f, -9.f, 0.f));
-    glm::mat4 shadow_mat = shadow_proj_mat * shadow_view_mat * model_mat;
-    GLint shadow_mat_loc = glGetUniformLocation(gl_program, "shadow_mat");
-    glUniformMatrix4fv(shadow_mat_loc, 1, GL_FALSE, glm::value_ptr(shadow_mat));
 
     GLint camera_pos_loc = glGetUniformLocation(gl_program, "camera_pos");
     glUniform3fv(camera_pos_loc, 1, glm::value_ptr(camera->GetCameraPos()));
