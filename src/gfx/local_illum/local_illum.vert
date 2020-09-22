@@ -2,6 +2,7 @@
 
 layout(location = 0) in vec3 vert_pos;
 layout(location = 1) in vec3 vert_normal;
+
 out vec3 frag_pos;
 out vec3 frag_normal;
 out vec4 frag_shadow_pos;

@@ -25,8 +25,10 @@ const char* kWindowTitle = "Local Illum";
 
 constexpr float kAspectRatio = static_cast<float>(kWindowWidth) / static_cast<float>(kWindowHeight);
 
-const int kShadowTexWidth = 1024;
-const int kShadowTexHeight = 1024;
+constexpr int kShadowTexWidth = 1024;
+constexpr int kShadowTexHeight = 1024;
+constexpr float kShadowNearPlane = 0.5f;
+constexpr float kShadowFarPlane = 30.f;
 
 std::unique_ptr<utils::Camera> camera;
 
@@ -40,9 +42,10 @@ GLuint gl_shadow_program;
 GLuint gl_shadow_vao;
 GLuint gl_shadow_fbo;
 GLuint gl_shadow_tex;
+GLuint gl_shadow_rbo;
 
 glm::vec3 light_pos;
-glm::mat4 shadow_view_mat;
+glm::mat4 shadow_view_mats[6];
 glm::mat4 shadow_proj_mat;
 
 void Initialize() {
@@ -71,7 +74,7 @@ void Initialize() {
                  glm::value_ptr(model->meshes[i].normals[0]), GL_STATIC_DRAW);
   }
 
-  light_pos = glm::vec3(0.f, 9.0f, 0.f);
+  light_pos = glm::vec3(0.f, 8.0f, 0.f);
 }
 
 void CreateShadowPass() {
@@ -114,26 +117,59 @@ void CreateShadowPass() {
   glDeleteShader(frag_shader);
   glDeleteShader(vert_shader);
 
+  glUseProgram(gl_shadow_program);
+
   glGenVertexArrays(1, &gl_shadow_vao);
 
   glGenTextures(1, &gl_shadow_tex);
+
   glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, gl_shadow_tex);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, kShadowTexWidth, kShadowTexHeight, 0,
-               GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, gl_shadow_tex);
+  for (size_t i = 0; i < 6; ++i) {
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, 
+                 kShadowTexWidth, kShadowTexHeight, 0, GL_RGBA, GL_FLOAT, nullptr);
+  }
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-  glGenFramebuffers(1, &gl_shadow_fbo);
-  glBindFramebuffer(GL_FRAMEBUFFER, gl_shadow_fbo);
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, gl_shadow_tex, 0);
-
-  glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-  shadow_view_mat = 
+  shadow_view_mats[0] = // +x
+      glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f)) *
+      glm::translate(glm::mat4(1.f), -light_pos);
+  shadow_view_mats[1] = // -x
+      glm::rotate(glm::mat4(1.f), glm::radians(-90.f), glm::vec3(0.f, 1.f, 0.f)) *
+      glm::translate(glm::mat4(1.f), -light_pos);
+  shadow_view_mats[2] = // +y
+      glm::rotate(glm::mat4(1.f), glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f)) *
+      glm::translate(glm::mat4(1.f), -light_pos);
+  shadow_view_mats[3] = // -y
       glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f)) *
-      glm::translate(glm::mat4(1.f), glm::vec3(0.f, -9.f, 0.f));
-  shadow_proj_mat = glm::perspective(glm::radians(90.f), 1.f, 1.f, 30.f);
+      glm::translate(glm::mat4(1.f), -light_pos);
+  shadow_view_mats[4] = // +z
+      glm::rotate(glm::mat4(1.f), glm::radians(180.f), glm::vec3(0.f, 1.f, 0.f)) *
+      glm::translate(glm::mat4(1.f), -light_pos);
+  shadow_view_mats[5] = // -z
+      glm::mat4(1.f) * glm::translate(glm::mat4(1.f), -light_pos);
+      
+  glGenFramebuffers(1, &gl_shadow_fbo);
+
+  glGenRenderbuffers(1, &gl_shadow_rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, gl_shadow_rbo);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, kShadowTexWidth,
+                        kShadowTexHeight);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+  glBindFramebuffer(GL_FRAMEBUFFER, gl_shadow_fbo);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                            GL_RENDERBUFFER, gl_shadow_rbo);
+      
+  shadow_proj_mat = glm::perspective(glm::radians(90.f), 1.f, kShadowNearPlane, 
+                                     kShadowFarPlane);
+
+  GLint far_plane_loc = glGetUniformLocation(gl_shadow_program, "far_plane");
+  glUniform1f(far_plane_loc, kShadowFarPlane);                                   
+
+  GLint light_pos_loc = glGetUniformLocation(gl_shadow_program, "light_pos");
+  glUniform3fv(light_pos_loc, 1, glm::value_ptr(light_pos));
 }
 
 void CreateLightPass() {
@@ -180,13 +216,15 @@ void CreateLightPass() {
 
   glUseProgram(gl_program);
 
-  glm::vec3 light_pos = glm::vec3(0.f, 9.0f, 0.f);
   glm::vec3 ambient_I = glm::vec3(0.8f, 0.8f, 0.8f);
   glm::vec3 diffuse_I = glm::vec3(0.3f, 0.3f, 0.3f);
   glm::vec3 specular_I = glm::vec3(1.f, 1.f, 1.f);
   float shininess = 8.f;
 
   camera->SetCameraPos(glm::vec3(0.f, 5.f, 12.5f));
+
+  GLint far_plane_loc = glGetUniformLocation(gl_program, "far_plane");
+  glUniform1f(far_plane_loc, kShadowFarPlane);      
 
   GLint light_pos_loc = glGetUniformLocation(gl_program, "light_pos");
   glUniform3fv(light_pos_loc, 1, glm::value_ptr(light_pos));
@@ -204,27 +242,36 @@ void CreateLightPass() {
 void ShadowPass() {
   glBindFramebuffer(GL_FRAMEBUFFER, gl_shadow_fbo);
 
-  glViewport(0, 0, kShadowTexWidth, kShadowTexHeight);
-  glClear(GL_DEPTH_BUFFER_BIT);
+  for (size_t i = 0; i < 6; ++i) {
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                           gl_shadow_tex, 0);
 
-  glUseProgram(gl_shadow_program);
+    glViewport(0, 0, kShadowTexWidth, kShadowTexHeight);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT);
 
-  for (size_t i = 0; i < model->meshes.size(); ++i) {
-    const utils::Mesh& mesh = model->meshes[i];
+    glUseProgram(gl_shadow_program);
 
-    glm::mat4 model_mat = glm::scale(glm::mat4(1.f), glm::vec3(5.f, 5.f, 5.f));
-    glm::mat4 mvp_mat = shadow_proj_mat * shadow_view_mat * model_mat;
+    for (size_t j = 0; j < model->meshes.size(); ++j) {
+      const utils::Mesh& mesh = model->meshes[j];
 
-    GLint mvp_mat_loc = glGetUniformLocation(gl_shadow_program, "mvp_mat");
-    glUniformMatrix4fv(mvp_mat_loc, 1, GL_FALSE, glm::value_ptr(mvp_mat));
+      glm::mat4 model_mat = glm::scale(glm::mat4(1.f), glm::vec3(5.f, 5.f, 5.f));
+      glm::mat4 mvp_mat = shadow_proj_mat * shadow_view_mats[i] * model_mat;
 
-    glBindVertexArray(gl_shadow_vao);
+      GLint model_mat_loc = glGetUniformLocation(gl_shadow_program, "model_mat");
+      glUniformMatrix4fv(model_mat_loc, 1, GL_FALSE, glm::value_ptr(model_mat));
+      
+      GLint mvp_mat_loc = glGetUniformLocation(gl_shadow_program, "mvp_mat");
+      glUniformMatrix4fv(mvp_mat_loc, 1, GL_FALSE, glm::value_ptr(mvp_mat));
 
-    glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbos[i]);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+      glBindVertexArray(gl_shadow_vao);
 
-    glDrawArrays(GL_TRIANGLES, 0, mesh.num_verts);
+      glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbos[j]);
+      glEnableVertexAttribArray(0);
+      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+      glDrawArrays(GL_TRIANGLES, 0, mesh.num_verts);
+    }
   }
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -256,6 +303,8 @@ void LightPass() {
     GLint normal_mat_loc = glGetUniformLocation(gl_program, "normal_mat");
     glUniformMatrix3fv(normal_mat_loc, 1, GL_FALSE, glm::value_ptr(normal_mat)); 
 
+    // TODO: Replace the identity mat with the view mat of the light.
+    glm::mat4 shadow_view_mat = glm::translate(glm::mat4(1.f), glm::vec3(0.f, -9.f, 0.f));
     glm::mat4 shadow_mat = shadow_proj_mat * shadow_view_mat * model_mat;
     GLint shadow_mat_loc = glGetUniformLocation(gl_program, "shadow_mat");
     glUniformMatrix4fv(shadow_mat_loc, 1, GL_FALSE, glm::value_ptr(shadow_mat));
@@ -290,6 +339,7 @@ void LightPass() {
 }
 
 void Cleanup() {
+  glDeleteRenderbuffers(1, &gl_shadow_rbo);
   glDeleteFramebuffers(1, &gl_shadow_fbo);
   glDeleteTextures(1, &gl_shadow_tex);
   glDeleteVertexArrays(1, &gl_shadow_vao);
