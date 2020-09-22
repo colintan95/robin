@@ -28,7 +28,7 @@ constexpr float kAspectRatio = static_cast<float>(kWindowWidth) / static_cast<fl
 constexpr int kShadowTexWidth = 1024;
 constexpr int kShadowTexHeight = 1024;
 constexpr float kShadowNearPlane = 0.5f;
-constexpr float kShadowFarPlane = 30.f;
+constexpr float kShadowFarPlane = 20.f;
 
 std::unique_ptr<utils::Camera> camera;
 
@@ -126,29 +126,30 @@ void CreateShadowPass() {
   glActiveTexture(GL_TEXTURE1);
   glBindTexture(GL_TEXTURE_CUBE_MAP, gl_shadow_tex);
   for (size_t i = 0; i < 6; ++i) {
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA, 
-                 kShadowTexWidth, kShadowTexHeight, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_R32F, 
+                 kShadowTexWidth, kShadowTexHeight, 0, GL_RED, GL_FLOAT, nullptr);
   }
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
+  
   shadow_view_mats[0] = // +x
-      glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f)) *
-      glm::translate(glm::mat4(1.f), -light_pos);
+      glm::lookAt(light_pos, light_pos + glm::vec3(1.0, 0.0, 0.0), 
+                  glm::vec3(0.0, -1.0, 0.0));
   shadow_view_mats[1] = // -x
-      glm::rotate(glm::mat4(1.f), glm::radians(-90.f), glm::vec3(0.f, 1.f, 0.f)) *
-      glm::translate(glm::mat4(1.f), -light_pos);
+      glm::lookAt(light_pos, light_pos + glm::vec3(-1.0, 0.0, 0.0), 
+                  glm::vec3(0.0, -1.0, 0.0));
   shadow_view_mats[2] = // +y
-      glm::rotate(glm::mat4(1.f), glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f)) *
-      glm::translate(glm::mat4(1.f), -light_pos);
+      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, 1.0, 0.0), 
+                  glm::vec3(0.0, 0.0, 1.0));
   shadow_view_mats[3] = // -y
-      glm::rotate(glm::mat4(1.f), glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f)) *
-      glm::translate(glm::mat4(1.f), -light_pos);
+      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, -1.0, 0.0), 
+                  glm::vec3(0.0, 0.0, -1.0));
   shadow_view_mats[4] = // +z
-      glm::rotate(glm::mat4(1.f), glm::radians(180.f), glm::vec3(0.f, 1.f, 0.f)) *
-      glm::translate(glm::mat4(1.f), -light_pos);
+      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, 0.0, 1.0), 
+                  glm::vec3(0.0, -1.0, 0.0));
   shadow_view_mats[5] = // -z
-      glm::mat4(1.f) * glm::translate(glm::mat4(1.f), -light_pos);
+      glm::lookAt(light_pos, light_pos + glm::vec3(0.0, 0.0, -1.0), 
+                  glm::vec3(0.0, -1.0, 0.0));
       
   glGenFramebuffers(1, &gl_shadow_fbo);
 
@@ -221,7 +222,7 @@ void CreateLightPass() {
   glm::vec3 specular_I = glm::vec3(1.f, 1.f, 1.f);
   float shininess = 8.f;
 
-  camera->SetCameraPos(glm::vec3(0.f, 5.f, 12.5f));
+  camera->SetCameraPos(glm::vec3(0.f, 7.f, 12.5f));
 
   GLint far_plane_loc = glGetUniformLocation(gl_program, "far_plane");
   glUniform1f(far_plane_loc, kShadowFarPlane);      
