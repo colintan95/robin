@@ -5,12 +5,14 @@ target_sources(utils
     "model.h"
     "program.h"
     "shader.h"
+    "wireframe_drawer.h"
   PRIVATE
     "camera.cpp"
     "image.cpp"
     "model.cpp"
     "program.cpp"
-    "shader.cpp")
+    "shader.cpp"
+    "wireframe_drawer.cpp")
 
 target_link_libraries(utils PRIVATE glew)
 target_link_libraries(utils PRIVATE glfw)

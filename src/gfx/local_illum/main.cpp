@@ -1,9 +1,9 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <GL/gl.h>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/glm.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <GLFW/glfw3.h>
 
@@ -15,8 +15,9 @@
 #include "utils/camera.h"
 #include "utils/image.h"
 #include "utils/model.h"
-#include "utils/shader.h"
 #include "utils/program.h"
+#include "utils/shader.h"
+#include "utils/wireframe_drawer.h"
 
 constexpr int kWindowWidth = 1920;
 constexpr int kWindowHeight = 1080;
@@ -30,6 +31,7 @@ constexpr float kShadowNearPlane = 0.5f;
 constexpr float kShadowFarPlane = 20.f;
 
 std::unique_ptr<utils::Camera> camera;
+std::unique_ptr<utils::WireframeDrawer> wireframe_drawer;
 
 GLuint gl_program;
 GLuint gl_vao;
@@ -74,6 +76,10 @@ void Initialize() {
   }
 
   light_pos = glm::vec3(0.f, 8.0f, 0.f);
+
+  wireframe_drawer = std::make_unique<utils::WireframeDrawer>();
+
+  wireframe_drawer->AddRectangle(glm::vec3(0.f, 8.f, 0.f), 1.f, 1.f, 1.f);
 }
 
 void CreateShadowPass() {
@@ -274,14 +280,15 @@ void LightPass() {
   glViewport(0, 0, kWindowWidth, kWindowHeight);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  glm::mat4 view_mat = camera->GetViewMatrix();
+  glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);
+
   glUseProgram(gl_program);
 
   for (size_t i = 0; i < model->meshes.size(); ++i) {
     const utils::Mesh& mesh = model->meshes[i];
 
     glm::mat4 model_mat = glm::scale(glm::mat4(1.f), glm::vec3(5.f, 5.f, 5.f));
-    glm::mat4 view_mat = camera->GetViewMatrix();
-    glm::mat4 proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);
 
     glm::mat4 mv_mat = view_mat * model_mat;
     glm::mat4 mvp_mat = proj_mat * mv_mat;
@@ -323,6 +330,8 @@ void LightPass() {
 
     glDrawArrays(GL_TRIANGLES, 0, mesh.num_verts);
   }
+
+  wireframe_drawer->Draw(proj_mat * view_mat);
 }
 
 void Cleanup() {
@@ -336,6 +345,8 @@ void Cleanup() {
   glDeleteBuffers(gl_pos_vbos.size(), &gl_pos_vbos[0]);
   glDeleteVertexArrays(1, &gl_vao);
   glDeleteProgram(gl_program);
+
+  wireframe_drawer.reset();
 }
 
 void WindowErrorCallback(int error, const char* desc) {
