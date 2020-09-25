@@ -188,8 +188,20 @@ bool LoadMaterialDataForMesh(const tinyobj::shape_t& shape,
 
 } // namespace
 
-std::shared_ptr<Model> LoadModelFromFile(const std::string& path, 
-                                         const std::string& material_dir) {
+const Mesh& Model::GetMeshByIndex(int index) const {
+  return meshes_[index];
+}
+
+const Mesh& Model::GetMeshByName(const std::string& name) const {
+  return meshes_[name_to_idx_map_.at(name)];
+}
+
+int Model::GetNumMeshes() const {
+  return meshes_.size();
+}
+
+std::shared_ptr<Model> Model::LoadModelFromFile(const std::string& path, 
+                                                const std::string& material_dir) {
   auto model = std::make_shared<Model>();
 
   tinyobj::attrib_t attribs;
@@ -209,11 +221,14 @@ std::shared_ptr<Model> LoadModelFromFile(const std::string& path,
     }
   }
 
-  model->meshes.resize(shapes.size());
+  model->meshes_.resize(shapes.size());
 
   size_t mesh_idx = 0;
   for (const tinyobj::shape_t& shape : shapes) {
-    Mesh& mesh = model->meshes[mesh_idx];
+    Mesh& mesh = model->meshes_[mesh_idx];
+
+    mesh.name = shape.name;
+    model->name_to_idx_map_[mesh.name] = mesh_idx;
 
     if (!LoadVertexDataForMesh(shape, attribs, &mesh)) {
       return false;

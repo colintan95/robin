@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace utils {
@@ -33,6 +34,8 @@ struct Material {
 };
 
 struct Mesh {
+  std::string name;
+
   std::vector<glm::vec3> positions;
   std::vector<glm::vec3> normals;
   std::vector<glm::vec2> texcoords;
@@ -42,12 +45,22 @@ struct Mesh {
   std::vector<Material> materials;
 };
 
-struct Model {
-  std::vector<Mesh> meshes;
+class Model {
+ public:
+  const Mesh& GetMeshByIndex(int index) const;
+  const Mesh& GetMeshByName(const std::string& name) const;
+
+  int GetNumMeshes() const;
+
+  static std::shared_ptr<Model> LoadModelFromFile(const std::string& path, 
+                                                  const std::string& material_dir);
+
+ private:
+  std::vector<Mesh> meshes_;
+  std::unordered_map<std::string, int> name_to_idx_map_;
 };
 
-std::shared_ptr<Model> LoadModelFromFile(const std::string& path, 
-                                         const std::string& material_dir);
+
 
 } // namespace utils
 
