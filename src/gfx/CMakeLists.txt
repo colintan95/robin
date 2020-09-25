@@ -15,6 +15,5 @@ function(add_shaders TARGET SHADER_SRC_FILES)
   add_dependencies("${TARGET}" "${TARGET}_shaders")
 endfunction()
 
-add_subdirectory(area_lights) 
-# add_subdirectory(global_illum) 
-# add_subdirectory(local_illum) 
+add_subdirectory(global_illum) 
+add_subdirectory(local_illum) 

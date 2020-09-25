@@ -157,13 +157,13 @@ void InitGeomPass() {
   
   proj_mat = glm::perspective(glm::radians(75.f), kAspectRatio, 0.1f, 1000.f);
 
-  model = utils::LoadModelFromFile("assets/sponza/sponza.obj", "assets/sponza");
+  model = utils::Model::LoadModelFromFile("assets/sponza/sponza.obj", "assets/sponza");
   if (model == nullptr) {
     std::cerr << "Could not load model." << std::endl;
     exit(1);
   }
 
-  for (const utils::Mesh& mesh : model->meshes) {
+  for (const utils::Mesh& mesh : model->GetMeshes() ) {
     for (const utils::Material& mtl : mesh.materials) {
       const std::string& texname = mtl.ambient_texname;
       // Loads the image file if it hasn't been loaded in before.
@@ -193,36 +193,36 @@ void InitGeomPass() {
     texname_to_tex_unit[texname] = tex_unit;
   }
 
-  gl_pos_vbos.resize(model->meshes.size());
+  gl_pos_vbos.resize(model->GetNumMeshes());
   glGenBuffers(gl_pos_vbos.size(), &gl_pos_vbos[0]);
   for (size_t i = 0; i < gl_pos_vbos.size(); ++i) {
     glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbos[i]);
-    glBufferData(GL_ARRAY_BUFFER, model->meshes[i].positions.size() * sizeof(glm::vec3), 
-                 glm::value_ptr(model->meshes[i].positions[0]), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, model->GetMeshByIndex(i).positions.size() * sizeof(glm::vec3), 
+                 glm::value_ptr(model->GetMeshByIndex(i).positions[0]), GL_STATIC_DRAW);
   }
 
-  gl_normal_vbos.resize(model->meshes.size());
+  gl_normal_vbos.resize(model->GetNumMeshes());
   glGenBuffers(gl_normal_vbos.size(), &gl_normal_vbos[0]);
   for (size_t i = 0; i < gl_normal_vbos.size(); ++i) {
     glBindBuffer(GL_ARRAY_BUFFER, gl_normal_vbos[i]);
-    glBufferData(GL_ARRAY_BUFFER, model->meshes[i].normals.size() * sizeof(glm::vec3), 
-                 glm::value_ptr(model->meshes[i].normals[0]), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, model->GetMeshByIndex(i).normals.size() * sizeof(glm::vec3), 
+                 glm::value_ptr(model->GetMeshByIndex(i).normals[0]), GL_STATIC_DRAW);
   }
 
-  gl_texcoord_vbos.resize(model->meshes.size());
+  gl_texcoord_vbos.resize(model->GetNumMeshes());
   glGenBuffers(gl_texcoord_vbos.size(), &gl_texcoord_vbos[0]);
   for (size_t i = 0; i < gl_texcoord_vbos.size(); ++i) {
     glBindBuffer(GL_ARRAY_BUFFER, gl_texcoord_vbos[i]);
-    glBufferData(GL_ARRAY_BUFFER, model->meshes[i].texcoords.size() * sizeof(glm::vec2), 
-                 glm::value_ptr(model->meshes[i].texcoords[0]), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, model->GetMeshByIndex(i).texcoords.size() * sizeof(glm::vec2), 
+                 glm::value_ptr(model->GetMeshByIndex(i).texcoords[0]), GL_STATIC_DRAW);
   }
 
-  gl_mtl_id_vbos.resize(model->meshes.size());
+  gl_mtl_id_vbos.resize(model->GetNumMeshes());
   glGenBuffers(gl_mtl_id_vbos.size(), &gl_mtl_id_vbos[0]);
   for (size_t i = 0; i < gl_mtl_id_vbos.size(); ++i) {
     glBindBuffer(GL_ARRAY_BUFFER, gl_mtl_id_vbos[i]);
-    glBufferData(GL_ARRAY_BUFFER, model->meshes[i].material_ids.size() * sizeof(int),
-                 &model->meshes[i].material_ids[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, model->GetMeshByIndex(i).material_ids.size() * sizeof(int),
+                 &model->GetMeshByIndex(i).material_ids[0], GL_STATIC_DRAW);
   }
 }
 
@@ -297,8 +297,8 @@ void RenderPass() {
   glUseProgram(gl_geom_pass_program);
   glBindVertexArray(gl_geom_pass_vao);
 
-  for (size_t i = 0; i < model->meshes.size(); ++i) {
-    const utils::Mesh& mesh = model->meshes[i];
+  for (size_t i = 0; i < model->GetNumMeshes(); ++i) {
+    const utils::Mesh& mesh = model->GetMeshByIndex(i);
     const utils::Material& mtl = mesh.materials[0];
 
     glm::mat4 model_mat = glm::mat4(1.f);

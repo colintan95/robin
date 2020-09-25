@@ -53,26 +53,27 @@ void Initialize() {
   glEnable(GL_DEPTH_TEST);
   glClearColor(0.f, 0.f, 0.f, 1.f);
 
-  model = utils::LoadModelFromFile("assets/cornell_box/cornell_box.obj", "assets/cornell_box");
+  model = utils::Model::LoadModelFromFile("assets/cornell_box/cornell_box.obj", 
+                                          "assets/cornell_box");
   if (model == nullptr) {
     std::cerr << "Could not load model." << std::endl;
     exit(1);
   }
 
-  gl_pos_vbos.resize(model->meshes.size());
+  gl_pos_vbos.resize(model->GetNumMeshes());
   glGenBuffers(gl_pos_vbos.size(), &gl_pos_vbos[0]);
   for (size_t i = 0; i < gl_pos_vbos.size(); ++i) {
     glBindBuffer(GL_ARRAY_BUFFER, gl_pos_vbos[i]);
-    glBufferData(GL_ARRAY_BUFFER, model->meshes[i].positions.size() * sizeof(glm::vec3), 
-                 glm::value_ptr(model->meshes[i].positions[0]), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, model->GetMeshByIndex(i).positions.size() * sizeof(glm::vec3), 
+                 glm::value_ptr(model->GetMeshByIndex(i).positions[0]), GL_STATIC_DRAW);
   }
 
-  gl_normal_vbos.resize(model->meshes.size());
+  gl_normal_vbos.resize(model->GetNumMeshes());
   glGenBuffers(gl_normal_vbos.size(), &gl_normal_vbos[0]);
   for (size_t i = 0; i < gl_normal_vbos.size(); ++i) {
     glBindBuffer(GL_ARRAY_BUFFER, gl_normal_vbos[i]);
-    glBufferData(GL_ARRAY_BUFFER, model->meshes[i].normals.size() * sizeof(glm::vec3), 
-                 glm::value_ptr(model->meshes[i].normals[0]), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, model->GetMeshByIndex(i).normals.size() * sizeof(glm::vec3), 
+                 glm::value_ptr(model->GetMeshByIndex(i).normals[0]), GL_STATIC_DRAW);
   }
 
   light_pos = glm::vec3(0.f, 8.0f, 0.f);
@@ -251,8 +252,8 @@ void ShadowPass() {
 
     glUseProgram(gl_shadow_program);
 
-    for (size_t j = 0; j < model->meshes.size(); ++j) {
-      const utils::Mesh& mesh = model->meshes[j];
+    for (size_t j = 0; j < model->GetNumMeshes(); ++j) {
+      const utils::Mesh& mesh = model->GetMeshByIndex(j);
 
       glm::mat4 model_mat = glm::scale(glm::mat4(1.f), glm::vec3(5.f, 5.f, 5.f));
       glm::mat4 mvp_mat = shadow_proj_mat * shadow_view_mats[i] * model_mat;
@@ -285,8 +286,8 @@ void LightPass() {
 
   glUseProgram(gl_program);
 
-  for (size_t i = 0; i < model->meshes.size(); ++i) {
-    const utils::Mesh& mesh = model->meshes[i];
+  for (size_t i = 0; i < model->GetNumMeshes(); ++i) {
+    const utils::Mesh& mesh = model->GetMeshByIndex(i);
 
     glm::mat4 model_mat = glm::scale(glm::mat4(1.f), glm::vec3(5.f, 5.f, 5.f));
 

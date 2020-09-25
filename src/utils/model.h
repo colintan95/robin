@@ -50,6 +50,8 @@ class Model {
   const Mesh& GetMeshByIndex(int index) const;
   const Mesh& GetMeshByName(const std::string& name) const;
 
+  const std::vector<Mesh>& GetMeshes() const { return meshes_; }
+
   int GetNumMeshes() const;
 
   static std::shared_ptr<Model> LoadModelFromFile(const std::string& path, 
